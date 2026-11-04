@@ -9,14 +9,14 @@ echarts.use([BarChart, LineChart, PieChart, GridComponent, TooltipComponent, Leg
 
 /** Paleta de gráficos (colores del sistema Apple). */
 export const PALETTE = {
-  wine: '#6B1A45',
-  pink: '#E58AAE',
-  blush: '#F3C4D5',
-  plum: '#8E3B7A',
-  gold: '#D2A23A',
+  wine: '#6E3B56',
+  pink: '#C0A1AE',
+  blush: '#E6D6DD',
+  plum: '#9A6F86',
+  gold: '#C9A45C',
   text: '#2A1B24',
   muted: '#6E6168',
-  grid: '#F0E4E8',
+  grid: '#EFE6EA',
 } as const;
 
 export const SERIES_COLORS = [PALETTE.wine, PALETTE.pink, PALETTE.gold, PALETTE.plum, PALETTE.blush];

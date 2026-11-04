@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { usePayments, useLoans } from '@/hooks/useStorage';
-import { formatCurrency, formatDate } from '@/types';
+import { formatCurrency, formatDate, formatLoanNumber } from '@/types';
 import { Search, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -140,7 +140,7 @@ export function PaymentsList() {
               <TableBody>
                 {filtered.map((p) => (
                   <TableRow key={p.id}>
-                    <TableCell className="font-medium">#{p.loanId}</TableCell>
+                    <TableCell className="font-medium">{formatLoanNumber(p.loanId)}</TableCell>
                     <TableCell>{p.customerName}</TableCell>
                     <TableCell>{formatDate(p.paymentDate)}</TableCell>
                     <TableCell className="text-right font-medium">{formatCurrency(p.amount)}</TableCell>
@@ -183,7 +183,7 @@ export function PaymentsList() {
               >
                 <option value="">Seleccionar préstamo</option>
                 {loansData?.map((l) => (
-                  <option key={l.id} value={l.id}>#{l.id} - {l.customerName}</option>
+                  <option key={l.id} value={l.id}>{l.customerName} · {formatLoanNumber(l.id)}</option>
                 ))}
               </select>
               {errors.loanId && <span className="text-xs text-destructive">{errors.loanId}</span>}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { usePeriods, useLoans } from '@/hooks/useStorage';
-import { formatCurrency, formatDate } from '@/types';
+import { formatCurrency, formatDate, formatLoanNumber } from '@/types';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
@@ -79,7 +79,7 @@ export function PeriodsList() {
           >
             <option value="all">Todos los préstamos</option>
             {loansData?.map((l) => (
-              <option key={l.id} value={l.id}>#{l.id} - {l.customerName}</option>
+              <option key={l.id} value={l.id}>{l.customerName} · {formatLoanNumber(l.id)}</option>
             ))}
           </select>
         </div>
@@ -110,7 +110,7 @@ export function PeriodsList() {
               <TableBody>
                 {filtered.map((period) => (
                   <TableRow key={period.id}>
-                    <TableCell className="font-medium">#{period.loanId}</TableCell>
+                    <TableCell className="font-medium">{formatLoanNumber(period.loanId)}</TableCell>
                     <TableCell>{period.customerName}</TableCell>
                     <TableCell className="text-center">{period.periodNumber}</TableCell>
                     <TableCell className="text-right">{formatDate(period.dueDate)}</TableCell>

@@ -101,6 +101,12 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+/** Número del préstamo para mostrar: los ids antiguos como "loan_001" se ven como "N.º 1". */
+export function formatLoanNumber(id: number | string): string {
+  const n = String(id).replace(/^loan_0*/i, '') || String(id);
+  return `N.º ${n}`;
+}
+
 export function formatDate(dateString: string | null): string {
   if (!dateString) return '';
   return new Date(dateString).toLocaleDateString(LOCALE, {

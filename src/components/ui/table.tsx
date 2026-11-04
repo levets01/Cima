@@ -3,8 +3,15 @@ import { cn } from './button';
 
 interface TableProps extends React.HTMLAttributes<HTMLTableElement> {}
 const Table = React.forwardRef<HTMLTableElement, TableProps>(({ className, ...props }, ref) => (
-  <div className="overflow-x-auto rounded-2xl border bg-card">
-    <table ref={ref} className={cn('w-full text-sm caption-bottom', className)} {...props} />
+  <div className="overflow-x-auto">
+    <table
+      ref={ref}
+      className={cn(
+        'w-full text-sm caption-bottom [&_th:first-child]:pl-0 [&_td:first-child]:pl-0 [&_th:last-child]:pr-0 [&_td:last-child]:pr-0',
+        className
+      )}
+      {...props}
+    />
   </div>
 ));
 Table.displayName = 'Table';

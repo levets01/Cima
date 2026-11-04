@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLoans, usePayments, usePeriods } from '@/hooks/useStorage';
-import { formatCurrency, formatDate } from '@/types';
+import { formatCurrency, formatDate, formatLoanNumber } from '@/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Banknote, Activity, ChevronRight } from 'lucide-react';
@@ -45,7 +45,7 @@ export function LoanDetail() {
     <div className="p-4 md:p-6 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1>Préstamo #{loan.id}</h1>
+          <h1>Préstamo {formatLoanNumber(loan.id)}</h1>
           <p className="text-muted-foreground">{loan.customerName}</p>
         </div>
         <div className="flex gap-2">

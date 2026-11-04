@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLoans } from '@/hooks/useStorage';
-import { formatCurrency, formatDate } from '@/types';
+import { formatCurrency, formatDate, formatLoanNumber } from '@/types';
 import { Search, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -183,7 +183,7 @@ export function ClientsList() {
               <TableBody>
                 {filtered.map((loan) => (
                   <TableRow key={loan.id}>
-                    <TableCell className="font-medium">#{loan.id}</TableCell>
+                    <TableCell className="font-medium">{formatLoanNumber(loan.id)}</TableCell>
                     <TableCell>{loan.customerName}</TableCell>
                     <TableCell>{formatDate(loan.loanDate)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(loan.principal)}</TableCell>

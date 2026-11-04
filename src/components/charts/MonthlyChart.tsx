@@ -22,7 +22,7 @@ export function MonthlyChart({ data }: { data: Row[] }) {
       symbol: 'circle',
       symbolSize: 6,
       showSymbol: false,
-      lineStyle: { width: 1.75, color },
+      lineStyle: { width: 2.25, color },
       itemStyle: { color, borderColor: '#fff', borderWidth: 2 },
       emphasis: { focus: 'series' as const, scale: true },
       data: data.map((d) => d[key]),

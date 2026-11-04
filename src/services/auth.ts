@@ -1,70 +1,56 @@
 /**
- * Acceso local de un solo usuario (correo + contraseña). La contraseña se guarda como hash SHA-256 con sal
- * en este navegador. Protege la pantalla, no es seguridad de servidor: los datos
- * siguen en localStorage.
+ * Login SIMULADO: valida contra src/services/mock/users.json.
+ * Imita lo que hará el backend (respuesta asíncrona con espera), pero las credenciales
+ * viajan dentro de la aplicación, así que NO es seguridad real.
+ * Pendiente: reemplazar `login` y `logout` por llamadas al backend; la pantalla no cambia.
  */
-const CRED_KEY = 'cima_auth';
+import users from './mock/users.json';
+
 const SESSION_KEY = 'cima_session';
+const LATENCY_MS = 700;
 
-interface Credential {
+interface MockUser {
   email: string;
-  salt: string;
-  hash: string;
+  password: string;
+  name: string;
 }
 
-async function sha256(text: string): Promise<string> {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+export interface SessionUser {
+  email: string;
+  name: string;
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const normalize = (email: string) => email.trim().toLowerCase();
 
-function readCredential(): Credential | null {
+function readSession(): SessionUser | null {
   try {
-    const raw = localStorage.getItem(CRED_KEY);
-    if (!raw) return null;
-    const cred = JSON.parse(raw) as Partial<Credential>;
-    // Las cuentas creadas antes de usar correo no tienen 'email': se vuelven a registrar.
-    return cred.email && cred.salt && cred.hash ? (cred as Credential) : null;
+    const raw = sessionStorage.getItem(SESSION_KEY) ?? localStorage.getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as SessionUser) : null;
   } catch {
     return null;
   }
 }
 
-function openSession(remember: boolean) {
-  try {
-    (remember ? localStorage : sessionStorage).setItem(SESSION_KEY, '1');
-  } catch {
-    /* almacenamiento bloqueado */
-  }
-}
-
 export const auth = {
-  hasAccount(): boolean {
-    return readCredential() !== null;
-  },
+  currentUser: readSession,
 
   isAuthenticated(): boolean {
+    return readSession() !== null;
+  },
+
+  /** Devuelve el usuario si las credenciales coinciden con users.json; si no, null. */
+  async login(email: string, password: string, remember: boolean): Promise<SessionUser | null> {
+    await sleep(LATENCY_MS);
+    const match = (users as MockUser[]).find((u) => normalize(u.email) === normalize(email) && u.password === password);
+    if (!match) return null;
+    const session: SessionUser = { email: match.email, name: match.name };
     try {
-      return sessionStorage.getItem(SESSION_KEY) === '1' || localStorage.getItem(SESSION_KEY) === '1';
+      (remember ? localStorage : sessionStorage).setItem(SESSION_KEY, JSON.stringify(session));
     } catch {
-      return false;
+      /* almacenamiento bloqueado: la sesión no se podrá guardar */
     }
-  },
-
-  async setup(email: string, password: string, remember: boolean): Promise<void> {
-    const salt = crypto.randomUUID();
-    const hash = await sha256(salt + password);
-    localStorage.setItem(CRED_KEY, JSON.stringify({ email: normalize(email), salt, hash }));
-    openSession(remember);
-  },
-
-  async login(email: string, password: string, remember: boolean): Promise<boolean> {
-    const cred = readCredential();
-    if (!cred) return false;
-    const ok = normalize(email) === cred.email && (await sha256(cred.salt + password)) === cred.hash;
-    if (ok) openSession(remember);
-    return ok;
+    return session;
   },
 
   logout() {

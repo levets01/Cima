@@ -35,7 +35,7 @@ export function Sidebar() {
         <button onClick={() => go('/')} className="flex items-center gap-3.5 px-6 pb-6 pt-8 text-left" aria-label="Ir al resumen">
           <Logo size={46} className="shrink-0" />
           <div>
-            <div className="font-display text-3xl font-semibold leading-none tracking-tight text-primary">Cima</div>
+            <div className="font-display text-3xl font-semibold leading-none tracking-tight text-sidebar-foreground">Cima</div>
             <div className="mt-1 text-[10px] uppercase tracking-[0.24em] text-sidebar-muted">Préstamos</div>
           </div>
         </button>
@@ -49,7 +49,7 @@ export function Sidebar() {
                 onClick={() => go(path)}
                 aria-current={active ? 'page' : undefined}
                 className={`flex w-full items-center gap-3.5 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
-                  active ? 'bg-sidebar-active text-primary' : 'text-sidebar-muted hover:bg-muted hover:text-foreground'
+                  active ? 'bg-sidebar-active text-primary' : 'text-sidebar-muted hover:bg-white/25 hover:text-sidebar-foreground'
                 }`}
               >
                 <Icon size={19} strokeWidth={active ? 2 : 1.6} />
@@ -71,7 +71,7 @@ export function Sidebar() {
           </div>
           <button
             onClick={() => go('/logout')}
-            className="mt-4 flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm text-sidebar-muted hover:bg-muted hover:text-foreground"
+            className="mt-4 flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm text-sidebar-muted hover:bg-white/25 hover:text-sidebar-foreground"
           >
             <LogOut size={18} strokeWidth={1.8} />
             Cerrar sesión

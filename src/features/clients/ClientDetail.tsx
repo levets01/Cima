@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLoans, usePayments } from '@/hooks/useStorage';
-import { formatCurrency, formatDate } from '@/types';
+import { formatCurrency, formatDate, formatLoanNumber } from '@/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
@@ -41,7 +41,7 @@ export function ClientDetail() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1>{loan.customerName}</h1>
-          <p className="text-muted-foreground">Préstamo #{loan.id}</p>
+          <p className="text-muted-foreground">Préstamo {formatLoanNumber(loan.id)}</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={() => navigate('/prestamos')}>Volver al registro</Button>
