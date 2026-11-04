@@ -33,7 +33,7 @@ export function Sidebar() {
         className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-300 md:sticky md:top-0 md:h-screen md:shrink-0 md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <button onClick={() => go('/')} className="flex items-center gap-3.5 px-6 pb-6 pt-8 text-left" aria-label="Ir al resumen">
-          <Logo size={40} className="shrink-0" />
+          <Logo size={46} className="shrink-0" />
           <div>
             <div className="font-display text-3xl font-semibold leading-none tracking-tight text-primary">Cima</div>
             <div className="mt-1 text-[10px] uppercase tracking-[0.24em] text-sidebar-muted">Préstamos</div>

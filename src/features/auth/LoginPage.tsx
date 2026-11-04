@@ -73,7 +73,7 @@ export function LoginPage() {
 
   return (
     <div className="relative grid min-h-screen bg-background text-foreground [--accent:345_60%_95%] [--primary:339_50%_44%] [--ring:339_50%_50%] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-      <aside className="relative hidden overflow-hidden lg:block" style={{ background: 'radial-gradient(900px 600px at 50% 72%, #D3B6C2 0%, transparent 70%), linear-gradient(160deg, #CBB0BC 0%, #C0A1AE 50%, #AE8C9B 100%)' }}>
+      <aside className="relative z-20 hidden overflow-hidden lg:block" style={{ clipPath: "url(#aside-clip)", background: 'radial-gradient(900px 600px at 50% 72%, #D3B6C2 0%, transparent 70%), linear-gradient(160deg, #CBB0BC 0%, #C0A1AE 50%, #AE8C9B 100%)' }}>
         <svg aria-hidden className="absolute inset-x-0 bottom-0 w-full" style={{ height: "min(76%, calc(100% - 390px))" }} viewBox="0 0 400 500" preserveAspectRatio="xMidYMax meet" fill="none">
           <defs>
             <radialGradient id="sp-glow" cx="50%" cy="50%" r="50%">
@@ -285,22 +285,20 @@ export function LoginPage() {
         </div>
       </aside>
 
-      {/* Borde curvo entre el panel y el formulario */}
-      <svg
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-1/2 z-10 hidden h-full w-[150px] -translate-x-full lg:block"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-      >
-        <path d="M101 0V100H12C72 78 72 22 12 0Z" fill="hsl(var(--background))" />
+      {/* Recorte curvo del panel: el formulario emerge por debajo de este borde */}
+      <svg width="0" height="0" className="absolute" aria-hidden>
+        <defs>
+          <clipPath id="aside-clip" clipPathUnits="objectBoundingBox">
+            <path d="M0 0H0.82C0.95 0.22 0.95 0.78 0.82 1H0Z" />
+          </clipPath>
+        </defs>
       </svg>
 
-      <main className="relative flex items-center justify-center overflow-hidden px-6 py-12 sm:px-12">
-        <div aria-hidden className="pointer-events-none absolute -bottom-40 -right-40 h-[420px] w-[420px] rounded-full bg-[#C0A1AE] opacity-40 blur-3xl" />
+      <main className="login-stage login-slide relative z-0 flex items-center justify-center overflow-hidden px-6 py-12 sm:px-12">
 
         <div className={`relative w-full max-w-[380px] ${done ? 'login-exit' : ''}`}>
           <div className="login-in" style={turn(0)}>
-            <Logo size={56} className="drop-shadow-sm" />
+            <Logo size={76} />
           </div>
 
           <h1 className="login-in mt-8 font-display text-[44px] font-semibold leading-none tracking-tight text-primary" style={turn(1)}>
