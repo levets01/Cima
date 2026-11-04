@@ -1,5 +1,5 @@
 /**
- * Acceso local de un solo usuario. La contraseña se guarda como hash SHA-256 con sal
+ * Acceso local de un solo usuario (correo + contraseña). La contraseña se guarda como hash SHA-256 con sal
  * en este navegador. Protege la pantalla, no es seguridad de servidor: los datos
  * siguen en localStorage.
  */
@@ -7,6 +7,7 @@ const CRED_KEY = 'cima_auth';
 const SESSION_KEY = 'cima_session';
 
 interface Credential {
+  email: string;
   salt: string;
   hash: string;
 }
@@ -16,10 +17,15 @@ async function sha256(text: string): Promise<string> {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+const normalize = (email: string) => email.trim().toLowerCase();
+
 function readCredential(): Credential | null {
   try {
     const raw = localStorage.getItem(CRED_KEY);
-    return raw ? (JSON.parse(raw) as Credential) : null;
+    if (!raw) return null;
+    const cred = JSON.parse(raw) as Partial<Credential>;
+    // Las cuentas creadas antes de usar correo no tienen 'email': se vuelven a registrar.
+    return cred.email && cred.salt && cred.hash ? (cred as Credential) : null;
   } catch {
     return null;
   }
@@ -34,7 +40,7 @@ function openSession(remember: boolean) {
 }
 
 export const auth = {
-  hasPassword(): boolean {
+  hasAccount(): boolean {
     return readCredential() !== null;
   },
 
@@ -46,17 +52,17 @@ export const auth = {
     }
   },
 
-  async setup(password: string, remember: boolean): Promise<void> {
+  async setup(email: string, password: string, remember: boolean): Promise<void> {
     const salt = crypto.randomUUID();
     const hash = await sha256(salt + password);
-    localStorage.setItem(CRED_KEY, JSON.stringify({ salt, hash }));
+    localStorage.setItem(CRED_KEY, JSON.stringify({ email: normalize(email), salt, hash }));
     openSession(remember);
   },
 
-  async login(password: string, remember: boolean): Promise<boolean> {
+  async login(email: string, password: string, remember: boolean): Promise<boolean> {
     const cred = readCredential();
     if (!cred) return false;
-    const ok = (await sha256(cred.salt + password)) === cred.hash;
+    const ok = normalize(email) === cred.email && (await sha256(cred.salt + password)) === cred.hash;
     if (ok) openSession(remember);
     return ok;
   },

@@ -60,7 +60,6 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-feature-settings: "tnum" 1, "lnum" 1;
     
   }
   h1, h2 {
@@ -74,4 +73,65 @@
 @media print {
   aside, header, button { display: none !important; }
   body { background: #fff; }
+}
+
+/* Login: brote que nace de una semilla. Los estilos base son el estado final;
+   las animaciones solo definen el punto de partida (y se anulan con reduced-motion). */
+.sprout-seed { transform-box: fill-box; transform-origin: center; animation: sprout-seed 900ms cubic-bezier(.22,1,.36,1) var(--delay, 0ms) both; }
+.sprout-draw { stroke-dasharray: 1; stroke-dashoffset: 0; animation: sprout-draw var(--d, 1800ms) cubic-bezier(.45,.05,.3,1) var(--delay, 0ms) both; }
+.sprout-leaf { transform-box: fill-box; transform-origin: 0% 50%; animation: sprout-leaf 1100ms cubic-bezier(.22,1,.36,1) var(--delay, 0ms) both; }
+.sprout-petal { transform-box: fill-box; transform-origin: 50% 100%; transform: rotate(var(--a, 0deg)); animation: sprout-petal 1700ms cubic-bezier(.22,1,.36,1) var(--delay, 0ms) both; }
+.sprout-glow { animation: sprout-glow 2400ms ease-out 3400ms both; }
+.sprout-sway { transform-box: view-box; transform-origin: 200px 430px; animation: sprout-sway 7s ease-in-out 6000ms infinite alternate; }
+
+@keyframes sprout-seed { from { transform: scale(0.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes sprout-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes sprout-leaf { from { transform: scale(0.05) rotate(-12deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+@keyframes sprout-petal { from { transform: rotate(0deg) scale(0.08); opacity: 0; } to { transform: rotate(var(--a, 0deg)) scale(1); opacity: 1; } }
+@keyframes sprout-glow { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sprout-float { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: .9; } 100% { transform: translateY(-70px); opacity: 0; } }
+.sprout-spark { animation: sprout-float var(--d, 5s) ease-out var(--delay, 5000ms) infinite; }
+@keyframes sprout-sway { from { transform: rotate(-1.6deg); } to { transform: rotate(1.6deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sprout-seed, .sprout-draw, .sprout-leaf, .sprout-petal, .sprout-glow, .sprout-sway { animation: none; }
+  .sprout-spark { animation: none; opacity: 0; }
+}
+
+/* Login: el formulario entra en orden (logo, título, campos, botón) */
+@keyframes login-in {
+  from { opacity: 0; transform: translateY(10px); filter: blur(4px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
+}
+.login-in { animation: login-in 700ms cubic-bezier(0.22, 1, 0.36, 1) calc(150ms + var(--i, 0) * 95ms) both; }
+
+@keyframes login-fade { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+.login-fade { animation: login-fade 260ms ease-out both; }
+
+@keyframes login-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+.login-shake { animation: login-shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+
+@keyframes login-spin { to { transform: rotate(360deg); } }
+.login-spin { animation: login-spin 700ms linear infinite; }
+
+@keyframes login-exit { to { opacity: 0; transform: translateY(-8px) scale(0.985); filter: blur(3px); } }
+.login-exit { animation: login-exit 450ms cubic-bezier(0.4, 0, 0.2, 1) 200ms both; }
+
+/* Autocompletado del navegador: sin el fondo azul por defecto */
+input:-webkit-autofill,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: hsl(var(--foreground));
+  -webkit-box-shadow: 0 0 0 1000px hsl(var(--card)) inset;
+  transition: background-color 9999s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-in, .login-fade, .login-shake, .login-exit { animation: none; }
+  .login-spin { animation-duration: 1.6s; }
 }
