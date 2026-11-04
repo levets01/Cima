@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "skills": {
+    "disenador_grafico_profesional": {
+      "source": "nexoratechnologyceo/automyx-2.5",
+      "sourceType": "github",
+      "skillPath": "skills/disenador_grafico_profesional/SKILL.md",
+      "computedHash": "c7ff8727942e764fbb3dd3cab048e502311be0576133236209e260999ca04126",
+      "installMode": "copy"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "89496d5dd00f4810205f351759594fc2742bf8eea85a2f2b2d1de59f4bd91576"
+    }
+  }
+}

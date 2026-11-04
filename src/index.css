@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Tokens de diseño — vino, ciruela, rosa empolvado, marfil y dorado suave.
+  Formato HSL sin envoltorio para poder usar opacidad (hsl(var(--x) / .5)).
+*/
+@layer base {
+      :root {
+    /* Superficies: marfil con matiz rosado + blanco cálido */
+    --background: 30 25% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 330 25% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 330 25% 14%;
+    --foreground: 330 25% 14%;
+
+    /* Marca */
+    --primary: 330 62% 27%;              /* vino profundo */
+    --primary-foreground: 20 60% 98%;
+    --plum: 318 38% 38%;                 /* ciruela */
+    --secondary: 20 14% 95%;
+    --secondary-foreground: 330 50% 22%;
+    --accent: 345 30% 96%;               /* rosa empolvado */
+    --accent-foreground: 330 60% 26%;
+    --gold: 41 62% 50%;                  /* dorado suave */
+    --gold-soft: 42 70% 91%;
+
+    /* Texto y bordes */
+    --muted: 20 14% 95%;
+    --muted-foreground: 20 6% 42%;      /* gris cálido */
+    --border: 20 12% 91%;
+    --input: 20 10% 85%;
+    --ring: 330 55% 36%;
+
+    /* Estados */
+    --destructive: 350 62% 40%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 150 45% 27%;
+    --success-soft: 145 40% 91%;
+    --warning: 32 80% 29%;
+    --warning-soft: 42 85% 90%;
+
+    /* Sidebar */
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 330 25% 14%;
+    --sidebar-muted: 20 6% 42%;
+    --sidebar-active: 345 30% 96%;
+    --sidebar-border: 20 12% 91%;
+
+    --shadow: 330 40% 20%;
+    --radius: 0.875rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+    
+  }
+  h1, h2 {
+    @apply font-display tracking-tight;
+  }
+  h1 {
+    @apply text-3xl font-semibold text-foreground;
+  }
+}
+
+@media print {
+  aside, header, button { display: none !important; }
+  body { background: #fff; }
+}
