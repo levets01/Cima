@@ -1,14 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Menu, Search } from 'lucide-react';
 import { useUIStore } from '@/hooks/useStore';
-import { MockStorageService } from '@/services/mock/data';
+import { apiJson } from '@/lib/api';
+import type { Payment } from '@/types';
 
 export function Topbar() {
   const navigate = useNavigate();
   const { setSidebarOpen } = useUIStore();
   const [q, setQ] = useState('');
-  const toReview = MockStorageService.getPayments().filter((p) => (p.review ?? '').startsWith('⚠')).length;
+  const [toReview, setToReview] = useState(0);
+
+  useEffect(() => {
+    apiJson<Payment[]>('/payments').then((payments) => {
+      setToReview(payments.filter((p) => (p.review ?? '').startsWith('⚠')).length);
+    });
+  }, []);
 
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center gap-3 bg-background/80 px-4 backdrop-blur-xl md:px-8">

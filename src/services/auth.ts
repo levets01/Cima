@@ -1,27 +1,17 @@
-/**
- * Login SIMULADO: valida contra src/services/mock/users.json.
- * Imita lo que hará el backend (respuesta asíncrona con espera), pero las credenciales
- * viajan dentro de la aplicación, así que NO es seguridad real.
- * Pendiente: reemplazar `login` y `logout` por llamadas al backend; la pantalla no cambia.
- */
-import users from './mock/users.json';
-
-const SESSION_KEY = 'cima_session';
-const LATENCY_MS = 700;
-
-interface MockUser {
-  email: string;
-  password: string;
-  name: string;
-}
+import { apiJson, apiRequest } from '@/lib/api';
 
 export interface SessionUser {
   email: string;
   name: string;
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const normalize = (email: string) => email.trim().toLowerCase();
+export interface AuthResponse {
+  user: SessionUser;
+  token: string;
+}
+
+const SESSION_KEY = 'cima_session';
+const TOKEN_KEY = 'cima_token';
 
 function readSession(): SessionUser | null {
   try {
@@ -39,16 +29,24 @@ export const auth = {
     return readSession() !== null;
   },
 
-  /** Devuelve el usuario si las credenciales coinciden con users.json; si no, null. */
   async login(email: string, password: string, remember: boolean): Promise<SessionUser | null> {
-    await sleep(LATENCY_MS);
-    const match = (users as MockUser[]).find((u) => normalize(u.email) === normalize(email) && u.password === password);
-    if (!match) return null;
-    const session: SessionUser = { email: match.email, name: match.name };
+    const res = await apiRequest('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, remember }),
+    });
+
+    if (res.status === 401) return null;
+    if (!res.ok) return null;
+
+    const data: AuthResponse = await res.json();
+
+    const session: SessionUser = { email: data.user.email, name: data.user.name };
     try {
-      (remember ? localStorage : sessionStorage).setItem(SESSION_KEY, JSON.stringify(session));
+      const store = remember ? localStorage : sessionStorage;
+      store.setItem(SESSION_KEY, JSON.stringify(session));
+      store.setItem(TOKEN_KEY, data.token);
     } catch {
-      /* almacenamiento bloqueado: la sesión no se podrá guardar */
+      /* almacenamiento bloqueado */
     }
     return session;
   },
@@ -57,6 +55,8 @@ export const auth = {
     try {
       sessionStorage.removeItem(SESSION_KEY);
       localStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(TOKEN_KEY);
     } catch {
       /* noop */
     }

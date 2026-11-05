@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: gastos_db
+    environment:
+      POSTGRES_USER: rosita
+      POSTGRES_PASSWORD: rosita123
+      POSTGRES_DB: control_prestamos
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rosita -d control_prestamos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    container_name: gastos_backend
+    env_file:
+      - .env
+    environment:
+      PORT: 4000
+      NODE_ENV: development
+      FRONTEND_URL: http://localhost:5173
+      DATABASE_URL: "postgresql://rosita:rosita123@db:5432/control_prestamos?schema=public"
+      JWT_SECRET: cambia_este_secreto_en_produccion
+      JWT_EXPIRES_IN: 7d
+    ports:
+      - "4000:4000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    restart: unless-stopped
+    command: >
+      sh -c "until npx prisma db push --accept-data-loss; do echo 'Esperando a la base de datos... reintentando en 3s'; sleep 3; done; npx tsx prisma/seed.ts && npx tsx watch src/server.ts"
+
+volumes:
+  postgres_data:

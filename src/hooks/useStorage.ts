@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import MockStorageService from '@/services/mock/data';
+import {
+  apiJson,
+  apiRequest,
+} from '@/lib/api';
 import type {
   CustomerLoan,
   Payment,
@@ -12,106 +15,122 @@ import type {
 export function useLoans() {
   const [loans, setLoans] = useState<CustomerLoan[]>([]);
 
+  const refetch = useCallback(async () => {
+    const data = await apiJson<CustomerLoan[]>('/loans');
+    setLoans(data);
+  }, []);
+
   useEffect(() => {
-    MockStorageService.init();
-    const p = MockStorageService.getPayments();
-    const pe = MockStorageService.getPeriods();
-    setLoans(MockStorageService.getLoansWithPayments(p, pe));
-  }, []);
-
-  const refetch = useCallback(() => {
-    const p = MockStorageService.getPayments();
-    const pe = MockStorageService.getPeriods();
-    setLoans(MockStorageService.getLoansWithPayments(p, pe));
-  }, []);
-
-  const create = useCallback((loan: Omit<CustomerLoan, 'id'>) => {
-    const created = MockStorageService.createLoan(loan);
     refetch();
+  }, [refetch]);
+
+  const create = useCallback(async (loan: Omit<CustomerLoan, 'id'>) => {
+    const created = await apiJson<CustomerLoan>('/loans', {
+      method: 'POST',
+      body: JSON.stringify(loan),
+    });
+    await refetch();
     return created;
   }, [refetch]);
 
-  const update = useCallback((id: number, updates: Partial<CustomerLoan>) => {
-    const updated = MockStorageService.updateLoan(id, updates);
-    if (updated) refetch();
+  const update = useCallback(async (id: number, updates: Partial<CustomerLoan>) => {
+    const updated = await apiJson<CustomerLoan>(`/loans/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+    await refetch();
     return updated;
   }, [refetch]);
 
-  const remove = useCallback((id: number) => {
-    const ok = MockStorageService.deleteLoan(id);
-    if (ok) refetch();
-    return ok;
+  const remove = useCallback(async (id: number) => {
+    await apiRequest(`/loans/${id}`, { method: 'DELETE' });
+    await refetch();
+    return true;
   }, [refetch]);
 
-  return {
-    data: loans,
-    create,
-    update,
-    remove,
-    refetch,
-  };
+  return { data: loans, create, update, remove, refetch };
 }
 
 export function usePayments() {
   const [payments, setPayments] = useState<Payment[]>([]);
 
-  useEffect(() => {
-    setPayments(MockStorageService.getPayments());
+  const refetch = useCallback(async () => {
+    const data = await apiJson<Payment[]>('/payments');
+    setPayments(data);
   }, []);
 
-  const refetch = useCallback(() => {
-    setPayments(MockStorageService.getPayments());
-  }, []);
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   const create = useCallback(
-    (payment: Omit<Payment, 'id' | 'customerName' | 'review'>) => {
-      const currentLoans = MockStorageService.getLoans();
-      const created = MockStorageService.createPayment(payment, currentLoans);
-      refetch();
+    async (payment: Omit<Payment, 'id' | 'customerName' | 'review'>) => {
+      const created = await apiJson<Payment>('/payments', {
+        method: 'POST',
+        body: JSON.stringify(payment),
+      });
+      await refetch();
       return created;
     },
     [refetch]
   );
 
-  return {
-    data: payments,
-    create,
-    refetch,
-  };
+  return { data: payments, create, refetch };
 }
 
 export function usePeriods() {
   const [periods, setPeriods] = useState<Period[]>([]);
 
+  const refetch = useCallback(async () => {
+    const data = await apiJson<Period[]>('/periods');
+    setPeriods(data);
+  }, []);
+
   useEffect(() => {
-    setPeriods(MockStorageService.getPeriods());
+    refetch();
+  }, [refetch]);
+
+  const getByLoan = useCallback(async (loanId: number) => {
+    return apiJson<Period[]>(`/periods/loan/${loanId}`);
   }, []);
 
-  const refetch = useCallback(() => {
-    setPeriods(MockStorageService.getPeriods());
+  const regenerate = useCallback(async (loanId: number) => {
+    return apiJson<Period[]>(`/periods/loan/${loanId}/regenerate`, {
+      method: 'POST',
+    });
   }, []);
 
-  const getByLoan = useCallback((loanId: number) => {
-    return MockStorageService.getPeriodsByLoan(loanId);
-  }, []);
-
-  return {
-    data: periods,
-    getByLoan,
-    refetch,
-  };
+  return { data: periods, getByLoan, regenerate, refetch };
 }
 
 export function useConfig() {
-  const [config, setConfig] = useState<BusinessConfig>(MockStorageService.getConfig());
+  const [config, setConfig] = useState<BusinessConfig>({
+    quincenalRate: 0.1,
+    monthlyRate: 0.2,
+    periodsPerLoan: 36,
+    maxLoans: 200,
+    maxPayments: 2000,
+  });
 
-  const update = useCallback((updates: Partial<BusinessConfig>) => {
-    const updated = MockStorageService.updateConfig(updates);
+  const refetch = useCallback(async () => {
+    const data = await apiJson<BusinessConfig>('/config');
+    setConfig(data);
+  }, []);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  const update = useCallback(async (updates: Partial<BusinessConfig>) => {
+    const updated = await apiJson<BusinessConfig>('/config', {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
     setConfig(updated);
     return updated;
   }, []);
 
-  return { data: config, update };
+  return { data: config, update, refetch };
 }
 
 export function useSummary() {
@@ -136,16 +155,13 @@ export function useSummary() {
   const [monthly, setMonthly] = useState<MonthlyMovement[]>([]);
   const [year, setYear] = useState<number>(new Date().getFullYear());
 
-  const refetch = useCallback(() => {
-    const loans = MockStorageService.getLoansWithPayments(
-      MockStorageService.getPayments(),
-      MockStorageService.getPeriods()
-    );
-    const payments = MockStorageService.getPayments();
-    const periods = MockStorageService.getPeriods();
-
-    setSummary(MockStorageService.computeSummary(loans, payments, periods));
-    setMonthly(MockStorageService.computeMonthlyMovement(loans, payments, year));
+  const refetch = useCallback(async () => {
+    const [s, m] = await Promise.all([
+      apiJson<SummaryIndicators>('/reports/summary'),
+      apiJson<MonthlyMovement[]>(`/reports/monthly-movement?year=${year}`),
+    ]);
+    setSummary(s);
+    setMonthly(m);
   }, [year]);
 
   useEffect(() => {
@@ -160,6 +176,3 @@ export function useSummary() {
     refetch,
   };
 }
-
-export type { CustomerLoan, Payment, Period, BusinessConfig, SummaryIndicators, MonthlyMovement };
-export { MockStorageService };

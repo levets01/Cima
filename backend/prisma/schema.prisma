@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Modality {
+  Mensual
+  Quincenal
+}
+
+enum LoanStatus {
+  Activo
+  EnSeguimiento
+  FaltaFecha
+  CapitalPagado
+}
+
+enum PeriodStatus {
+  PorPagar
+  PendienteVencido
+  ReditoPagado
+  CapitalPagado
+}
+
+enum PaymentType {
+  Capital
+  Redito
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("USER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  loans    Loan[]
+  payments Payment[]
+}
+
+model Config {
+  id               Int      @id @default(1)
+  quincenalRate    Float    @default(0.1)
+  monthlyRate      Float    @default(0.2)
+  periodsPerLoan   Int      @default(36)
+  maxLoans         Int      @default(200)
+  maxPayments      Int      @default(2000)
+  updatedAt        DateTime @updatedAt
+}
+
+model Loan {
+  id                Int              @id @default(autoincrement())
+  customerName      String
+  loanDate          DateTime
+  principal         Float
+  modality          Modality
+  ratePerPeriod     Float
+  interestPerPeriod Float
+  firstInterestPaymentDate DateTime?
+  capitalPaid       Float            @default(0)
+  capitalPending    Float            @default(0)
+  interestReceived  Float            @default(0)
+  status            LoanStatus       @default(Activo)
+  nextCollection    DateTime?
+  interestOverdue   Float            @default(0)
+  daysOverdue       Int              @default(0)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  user    User?   @relation(fields: [userId], references: [id])
+  userId  Int?
+
+  payments Payment[]
+  periods  Period[]
+}
+
+model Payment {
+  id          Int         @id @default(autoincrement())
+  loanId      Int
+  paymentDate DateTime
+  amount      Float
+  type        PaymentType
+  periodNumber Int?
+  note        String?
+  customerName String
+  review      String      @default("OK")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  loan   Loan   @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id])
+  userId Int?
+}
+
+model Period {
+  id                 Int         @id @default(autoincrement())
+  loanId             Int
+  customerName       String
+  periodNumber       Int
+  dueDate            DateTime?
+  modality           Modality
+  capitalPendingEstimated Float
+  interestGenerated  Float
+  interestPaid       Float       @default(0)
+  interestPending    Float
+  status             PeriodStatus
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  loan Loan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+}
