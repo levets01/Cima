@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useLoans } from '@/hooks/useStorage';
-import { formatCurrency, formatDate, formatLoanNumber } from '@/types';
+import { formatCurrency, formatDate, formatLoanNumber, LoanStatus } from '@/types';
 import { Search, Plus } from 'lucide-react';
+import { ImportClients } from './ImportClients';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
@@ -35,6 +36,7 @@ export function ClientsList() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [loanToDelete, setLoanToDelete] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -64,7 +66,7 @@ export function ClientsList() {
     const ratePerPeriod = data.modality === 'Quincenal' ? 0.1 : 0.2;
     const interestPerPeriod = data.principal * ratePerPeriod;
     const capitalPending = data.principal;
-    const status = data.firstInterestPaymentDate ? 'Activo' : 'Falta fecha';
+    const status: LoanStatus = data.firstInterestPaymentDate ? 'Activo' : 'Falta fecha';
 
     const newLoan = {
       customerName: data.customerName,
@@ -117,6 +119,12 @@ export function ClientsList() {
         </div>
         <Button onClick={() => setIsModalOpen(true)}>
           <Plus size={18} /> Nuevo préstamo
+        </Button>
+        <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+          <span className="flex items-center gap-1">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+            Importar Excel
+          </span>
         </Button>
       </div>
 
@@ -259,6 +267,12 @@ export function ClientsList() {
         onConfirm={handleDelete}
         title="Eliminar préstamo"
         description="¿Estás seguro de que deseas eliminar este préstamo?"
+      />
+
+      <ImportClients
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onComplete={() => setIsImportOpen(false)}
       />
     </div>
   );

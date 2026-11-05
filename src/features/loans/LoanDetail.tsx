@@ -25,12 +25,12 @@ export function LoanDetail() {
   const navigate = useNavigate();
   const { data: loans } = useLoans();
   const { data: payments } = usePayments();
-  const { getByLoan } = usePeriods();
+  const { data: periods } = usePeriods();
 
   const loanId = id ? parseInt(id) : 0;
   const loan = loans?.find((l) => l.id === loanId);
   const loanPayments = payments?.filter((p) => p.loanId === loanId) || [];
-  const loanPeriods = getByLoan(loanId);
+  const loanPeriods = periods?.filter((p) => p.loanId === loanId) || [];
 
   if (!loan) {
     return (

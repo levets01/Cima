@@ -2,15 +2,14 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
-  const raw = sessionStorage.getItem('cima_session') ?? localStorage.getItem('cima_session');
-  if (!raw) return null;
-  try {
-    const { email, name } = JSON.parse(raw);
-    // El backend devuelve un JWT token; aquí lo guardamos tras el login
+    const raw = sessionStorage.getItem('cima_session') ?? localStorage.getItem('cima_session');
+    if (!raw) return null;
+    try {
+      JSON.parse(raw);
+    } catch {
+      return null;
+    }
     return (sessionStorage.getItem('cima_token') ?? localStorage.getItem('cima_token')) ?? '';
-  } catch {
-    return null;
-  }
 }
 
 export async function apiRequest(
