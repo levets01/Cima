@@ -1,13 +1,14 @@
 import { Router } from 'express';
 import { AuthController } from '@/controllers/auth.controller';
 import { LoanController } from '@/controllers/loan.controller';
+import { LoanImportController } from '@/controllers/loan.import.controller';
 import { PaymentController } from '@/controllers/payment.controller';
 import { PeriodController } from '@/controllers/period.controller';
 import { ConfigController } from '@/controllers/config.controller';
 import { ReportController } from '@/controllers/report.controller';
 import { authMiddleware, optionalAuthMiddleware } from '@/middleware/auth.middleware';
 import { validateMiddleware } from '@/middleware/validate.middleware';
-import { loginSchema, loanSchema, loanUpdateSchema, paymentSchema, configSchema } from '@/validators';
+import { loginSchema, loanSchema, loanUpdateSchema, loanImportSchema, paymentSchema, configSchema } from '@/validators';
 
 const router = Router();
 
@@ -182,6 +183,55 @@ router.put('/loans/:id', authMiddleware, validateMiddleware(loanUpdateSchema), L
  *         description: Préstamo no encontrado
  */
 router.delete('/loans/:id', authMiddleware, LoanController.delete);
+
+/**
+ * @swagger
+ * /api/loans/import:
+ *   post:
+ *     summary: Importar préstamos desde Excel/CSV en lote
+ *     tags: [Loans]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [loans]
+ *             properties:
+ *               loans:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     customerName:
+ *                       type: string
+ *                     loanDate:
+ *                       type: string
+ *                       format: date-time
+ *                     principal:
+ *                       type: number
+ *                     modality:
+ *                       type: string
+ *                       enum: [Mensual, Quincenal]
+ *                     ratePerPeriod:
+ *                       type: number
+ *                     interestPerPeriod:
+ *                       type: number
+ *                     firstInterestPaymentDate:
+ *                       type: string
+ *                       format: date-time
+ *                     status:
+ *                       type: string
+ *                       enum: [Activo, En seguimiento, Falta fecha, Capital pagado]
+ *     responses:
+ *       201:
+ *         description: Préstamos importados
+ *       400:
+ *         description: Datos inválidos
+ */
+router.post('/loans/import', authMiddleware, validateMiddleware(loanImportSchema), LoanImportController.import);
 
 /**
  * @swagger

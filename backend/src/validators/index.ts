@@ -59,3 +59,24 @@ export const configSchema = z.object({
   maxLoans: z.number().int().positive().optional(),
   maxPayments: z.number().int().positive().optional(),
 });
+
+export const loanImportSchema = z.object({
+  loans: z.array(
+    z.object({
+      customerName: z.string().min(1, 'Nombre requerido'),
+      loanDate: z.string().min(1, 'Fecha requerida'),
+      principal: z.number().positive(),
+      modality: z.enum(['Mensual', 'Quincenal']),
+      ratePerPeriod: z.number().nonnegative().optional(),
+      interestPerPeriod: z.number().nonnegative().optional(),
+      firstInterestPaymentDate: z.string().min(1).optional().nullable(),
+      capitalPaid: z.number().nonnegative().default(0),
+      capitalPending: z.number().nonnegative().default(0),
+      interestReceived: z.number().nonnegative().default(0),
+      status: z.enum(['Activo', 'En seguimiento', 'Falta fecha', 'Capital pagado']).default('Activo'),
+      nextCollection: z.string().min(1).optional().nullable(),
+      interestOverdue: z.number().nonnegative().default(0),
+      daysOverdue: z.number().int().nonnegative().default(0),
+    })
+  ),
+});

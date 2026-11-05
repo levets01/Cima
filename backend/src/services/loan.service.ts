@@ -333,6 +333,71 @@ export class LoanService {
     await prisma.loan.delete({ where: { id } });
     return true;
   }
+
+  static async createMany(data: any[], userId?: number): Promise<CustomerLoan[]> {
+    const created: CustomerLoan[] = [];
+    const errors: string[] = [];
+
+    for (let i = 0; i < data.length; i++) {
+      const item = data[i];
+      const rowNum = i + 1;
+
+      // Validar modalidad soportada
+      if (item.modality && item.modality !== 'Mensual' && item.modality !== 'Quincenal') {
+        errors.push(`Fila ${rowNum}: modalidad '${item.modality}' no soportada (usa Mensual o Quincenal)`);
+        continue;
+      }
+
+      // Convertir tasa de porcentaje (ej. 10) a decimal (0.10) si es mayor a 1
+      let ratePerPeriod = item.ratePerPeriod;
+      if (ratePerPeriod != null && ratePerPeriod > 1) {
+        ratePerPeriod = ratePerPeriod / 100;
+      }
+
+      // Convertir fechas de string a ISO
+      let loanDate: string | undefined;
+      if (item.loanDate) {
+        try {
+          loanDate = new Date(item.loanDate).toISOString();
+        } catch {
+          errors.push(`Fila ${rowNum}: fecha de préstamo inválida '${item.loanDate}'`);
+          continue;
+        }
+      }
+
+      let firstInterestPaymentDate: string | undefined;
+      if (item.firstInterestPaymentDate) {
+        try {
+          firstInterestPaymentDate = new Date(item.firstInterestPaymentDate).toISOString();
+        } catch {
+          errors.push(`Fila ${rowNum}: fecha de primer pago inválida '${item.firstInterestPaymentDate}'`);
+          continue;
+        }
+      }
+
+      const normalized = {
+        ...item,
+        loanDate,
+        firstInterestPaymentDate,
+        ratePerPeriod: ratePerPeriod != null ? ratePerPeriod : 0,
+        interestPerPeriod: item.interestPerPeriod != null ? item.interestPerPeriod : 0,
+        modality: item.modality === 'Mensual' ? 'Mensual' : 'Quincenal',
+      };
+
+      try {
+        const loan = await this.create(normalized, userId);
+        created.push(loan);
+      } catch (err: any) {
+        errors.push(`Fila ${rowNum}: ${err.message || 'Error al crear préstamo'}`);
+      }
+    }
+
+    if (errors.length > 0 && created.length === 0) {
+      throw new Error(errors.join('; '));
+    }
+
+    return created;
+  }
 }
 
 export class PeriodService {
