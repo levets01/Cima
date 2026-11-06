@@ -1,180 +1,73 @@
+import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import prisma from '../src/config/prisma';
 import { DEFAULT_CONFIG } from '../src/types';
-import { toPrismaLoanStatus } from '../src/services/loan.service';
+import { LoanService } from '../src/services/loan.service';
+import { PaymentService } from '../src/services/payment.service';
 
 async function main() {
-  const hashedPassword = await bcrypt.hash('Cima2025!', 10);
+  const production = process.env.NODE_ENV === 'production';
+  const email = (process.env.SEED_EMAIL ?? (production ? '' : 'rosita@cima.com')).trim().toLowerCase();
+  const password = process.env.SEED_PASSWORD ?? (production ? '' : 'Cima2025!');
+  const name = process.env.SEED_NAME?.trim() || 'Rosita';
 
-  // Usuario por defecto (coincide con users.json del frontend)
-  await prisma.user.upsert({
-    where: { email: 'rosita@cima.com' },
+  if (!email || !password) {
+    throw new Error('Define SEED_EMAIL y SEED_PASSWORD para crear el usuario inicial.');
+  }
+  if (production && (password === 'Cima2025!' || password.length < 12)) {
+    throw new Error('SEED_PASSWORD debe ser una contraseña propia de al menos 12 caracteres en producción.');
+  }
+  if (production && process.env.SEED_DEMO === 'true') {
+    throw new Error('Los datos de demostración solo están disponibles en desarrollo.');
+  }
+
+  const user = await prisma.user.upsert({
+    where: { email },
     update: {},
-    create: {
-      email: 'rosita@cima.com',
-      password: hashedPassword,
-      name: 'Rosita',
-    },
+    create: { email, password: await bcrypt.hash(password, 12), name, role: 'ADMIN' },
   });
 
-  // Configuración por defecto
-  await prisma.config.upsert({
-    where: { id: 1 },
-    update: {},
-    create: DEFAULT_CONFIG,
-  });
+  await prisma.config.upsert({ where: { id: 1 }, update: {}, create: DEFAULT_CONFIG });
 
-  // Préstamos de ejemplo
-  const now = new Date();
-  const addMonths = (date: Date, m: number) => {
-    const r = new Date(date);
-    r.setMonth(r.getMonth() + m);
-    return r;
-  };
-  const addDays = (date: Date, d: number) => {
-    const r = new Date(date);
-    r.setDate(r.getDate() + d);
-    return r;
-  };
-  const toISO = (d: Date) => d.toISOString();
+  if (process.env.SEED_DEMO === 'true') {
+    // Los nombres y notas permiten reejecutar el seed sin duplicar registros.
+    const today = new Date();
+    const dateAgo = (days: number) => {
+      const date = new Date(today);
+      date.setUTCDate(date.getUTCDate() - days);
+      return date.toISOString().slice(0, 10);
+    };
+    const examples = [
+      { customerName: 'Demo · Carlos Rodríguez', principal: 5000000, modality: 'Mensual', firstInterestPaymentDate: dateAgo(30) },
+      { customerName: 'Demo · María Gómez', principal: 3000000, modality: 'Quincenal', firstInterestPaymentDate: dateAgo(15) },
+      { customerName: 'Demo · Luis Fernández', principal: 8000000, modality: 'Mensual', firstInterestPaymentDate: null },
+    ];
 
-  const loans = [
-    {
-      customerName: 'Carlos Rodríguez',
-      loanDate: toISO(addMonths(now, -4)),
-      principal: 5000000,
-      modality: 'Mensual' as const,
-      ratePerPeriod: 0.2,
-      interestPerPeriod: 1000000,
-      firstInterestPaymentDate: toISO(addMonths(now, -3)),
-      capitalPaid: 1000000,
-      capitalPending: 4000000,
-      interestReceived: 3000000,
-      status: 'Activo' as const,
-      nextCollection: toISO(addMonths(now, 1)),
-      interestOverdue: 0,
-      daysOverdue: 0,
-    },
-    {
-      customerName: 'María Gómez',
-      loanDate: toISO(addMonths(now, -2)),
-      principal: 3000000,
-      modality: 'Quincenal' as const,
-      ratePerPeriod: 0.1,
-      interestPerPeriod: 300000,
-      firstInterestPaymentDate: toISO(addDays(now, -15)),
-      capitalPaid: 500000,
-      capitalPending: 2500000,
-      interestReceived: 600000,
-      status: 'En seguimiento' as const,
-      nextCollection: toISO(addDays(now, -5)),
-      interestOverdue: 300000,
-      daysOverdue: 5,
-    },
-    {
-      customerName: 'Luis Fernández',
-      loanDate: toISO(addMonths(now, -6)),
-      principal: 8000000,
-      modality: 'Mensual' as const,
-      ratePerPeriod: 0.2,
-      interestPerPeriod: 1600000,
-      firstInterestPaymentDate: null,
-      capitalPaid: 0,
-      capitalPending: 8000000,
-      interestReceived: 0,
-      status: 'Falta fecha' as const,
-      nextCollection: null,
-      interestOverdue: 0,
-      daysOverdue: 0,
-    },
-  ];
+    for (const example of examples) {
+      let loan = await prisma.loan.findFirst({ where: { customerName: example.customerName, userId: user.id } });
+      if (!loan) {
+        const created = await LoanService.create({ ...example, loanDate: dateAgo(60) }, user.id);
+        loan = await prisma.loan.findUniqueOrThrow({ where: { id: created.id } });
+      }
+      if (!example.firstInterestPaymentDate) continue;
 
-  for (const loan of loans) {
-    const created = await prisma.loan.create({
-      data: {
-        customerName: loan.customerName,
-        loanDate: new Date(loan.loanDate),
-        principal: loan.principal,
-        modality: loan.modality === 'Quincenal' ? 'Quincenal' : 'Mensual',
-        ratePerPeriod: loan.ratePerPeriod,
-        interestPerPeriod: loan.interestPerPeriod,
-        firstInterestPaymentDate: loan.firstInterestPaymentDate ? new Date(loan.firstInterestPaymentDate) : null,
-        capitalPaid: loan.capitalPaid,
-        capitalPending: loan.capitalPending,
-        interestReceived: loan.interestReceived,
-        status: loan.status === 'Activo' ? 'Activo'
-          : loan.status === 'En seguimiento' ? 'EnSeguimiento'
-          : loan.status === 'Falta fecha' ? 'FaltaFecha'
-          : 'CapitalPagado',
-        nextCollection: loan.nextCollection ? new Date(loan.nextCollection) : null,
-        interestOverdue: loan.interestOverdue,
-        daysOverdue: loan.daysOverdue,
-      },
-    });
-
-    // Pagos de ejemplo
-    if (created.id === 1) {
-      await prisma.payment.createMany({
-        data: [
-          {
-            loanId: created.id,
-            paymentDate: toISO(addDays(now, -45)),
-            amount: 500000,
-            type: 'Capital',
-            periodNumber: null,
-            note: 'Abono a capital',
-            customerName: 'Carlos Rodríguez',
-            review: 'OK',
-          },
-          {
-            loanId: created.id,
-            paymentDate: toISO(addDays(now, -30)),
-            amount: 1000000,
-            type: 'Redito',
-            periodNumber: 1,
-            note: 'Rédito período 1',
-            customerName: 'Carlos Rodríguez',
-            review: 'OK',
-          },
-        ],
-      });
-    }
-    if (created.id === 2) {
-      await prisma.payment.createMany({
-        data: [
-          {
-            loanId: created.id,
-            paymentDate: toISO(addDays(now, -20)),
-            amount: 300000,
-            type: 'Redito',
-            periodNumber: 1,
-            note: 'Rédito quincenal 1',
-            customerName: 'María Gómez',
-            review: 'OK',
-          },
-          {
-            loanId: created.id,
-            paymentDate: toISO(addDays(now, -10)),
-            amount: 500000,
-            type: 'Capital',
-            periodNumber: null,
-            note: 'Abono capital',
-            customerName: 'María Gómez',
-            review: 'OK',
-          },
-        ],
-      });
+      const note = 'Pago de capital de demostración (seed)';
+      const existingPayment = await prisma.payment.findFirst({ where: { loanId: loan.id, note } });
+      if (!existingPayment) {
+        await PaymentService.create({
+          loanId: loan.id, paymentDate: dateAgo(10), amount: 500000,
+          type: 'Capital', periodNumber: null, note,
+        }, user.id);
+      }
     }
   }
 
-  console.log('✅ Seed completado');
+  console.log(`Seed completado. Usuario inicial: ${user.email}. No se modificaron usuarios existentes.`);
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
   })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .finally(async () => { await prisma.$disconnect(); });

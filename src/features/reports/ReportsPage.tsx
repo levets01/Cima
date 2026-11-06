@@ -1,3 +1,4 @@
+import { Alert } from '@/components/ui/alert';
 import { useSummary } from '@/hooks/useStorage';
 import { formatCurrency } from '@/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -12,7 +13,7 @@ import { PALETTE, SERIES_COLORS } from '@/components/charts/EChart';
 const COLORS = SERIES_COLORS;
 
 export function ReportsPage() {
-  const { data: summary, monthly, year, setYear } = useSummary();
+  const { data: summary, monthly, year, setYear, loading, error } = useSummary();
 
   const statusDistribution = [
     { name: 'Activos', value: summary.activeLoans, color: COLORS[0] },
@@ -70,6 +71,8 @@ export function ReportsPage() {
         </div>
       </div>
 
+      {error && <Alert variant="error" title="No se pudieron cargar los datos" description={error} />}
+      {loading && <p role="status" className="text-sm text-muted-foreground">Cargando datos...</p>}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card>
           <CardHeader>
@@ -85,7 +88,7 @@ export function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-semibold tabular-nums text-success">{formatCurrency(summary.capitalRecovered)}</div>
-            <div className="text-sm text-muted-foreground mt-1">{summary.capitalRecoveredPct.toFixed(1)}% del capital prestado</div>
+            <div className="text-sm text-muted-foreground mt-1">{(summary.capitalRecoveredPct * 100).toFixed(1)}% del capital prestado</div>
           </CardContent>
         </Card>
         <Card>
@@ -102,7 +105,7 @@ export function ReportsPage() {
             <CardTitle className="flex items-center gap-2"><AlertCircle size={16} /> Rentabilidad</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold tabular-nums text-success">{summary.profitabilityPct.toFixed(1)}%</div>
+            <div className="text-3xl font-semibold tabular-nums text-success">{(summary.profitabilityPct * 100).toFixed(1)}%</div>
             <div className="text-sm text-muted-foreground mt-1">Réditos cobrados ÷ capital prestado</div>
           </CardContent>
         </Card>

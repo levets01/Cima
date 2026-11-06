@@ -1,0 +1,47 @@
+appId: co.cima.prestamos
+productName: Cima
+copyright: Copyright © Cima
+asar: true
+npmRebuild: false
+afterPack: desktop/after-pack.cjs
+directories:
+  app: .desktop-app
+  output: release
+files:
+  - desktop/**/*
+  - dist/**/*
+  - package.json
+  - '!node_modules{,/**/*}'
+extraResources:
+  - from: .desktop-backend
+    to: backend
+    filter:
+      - '**/*'
+      - '!**/.cache/**'
+      - '!**/*.test.*'
+      - '!**/*.db'
+  - from: .desktop-backend/node_modules
+    to: backend/node_modules
+    filter:
+      - '**/*'
+      - '!.bin{,/**/*}'
+      - '!**/.cache/**'
+win:
+  icon: desktop/resources/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: zip
+      arch: [x64]
+  signExecutable: false
+  artifactName: Cima-${version}-win-${arch}.${ext}
+nsis:
+  artifactName: Cima-${version}-Setup.${ext}
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Cima
+  deleteAppDataOnUninstall: false
+  installerLanguages: [es_ES]

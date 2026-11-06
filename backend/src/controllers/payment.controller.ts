@@ -1,16 +1,17 @@
+import { positiveInteger } from './params';
 import { Request, Response } from 'express';
-import { PaymentService } from '@/services/payment.service';
-import { AuthRequest } from '@/middleware/auth.middleware';
+import { PaymentService } from '../services/payment.service';
+import { AuthRequest } from '../middleware/auth.middleware';
 
 export class PaymentController {
   static async list(req: Request, res: Response): Promise<void> {
-    const loanId = req.query.loanId ? parseInt(req.query.loanId as string, 10) : undefined;
+    const loanId = req.query.loanId !== undefined ? positiveInteger(req.query.loanId, 'ID del préstamo') : undefined;
     const payments = await PaymentService.getAll(loanId);
     res.json(payments);
   }
 
   static async getByLoan(req: Request, res: Response): Promise<void> {
-    const loanId = parseInt(req.params.loanId, 10);
+    const loanId = positiveInteger(req.params.loanId, 'ID del préstamo');
     const payments = await PaymentService.getByLoan(loanId);
     res.json(payments);
   }

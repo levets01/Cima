@@ -1,55 +1,52 @@
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api';
+import { clearSession, readSession } from './session';
+import { useUIStore } from '@/hooks/useStore';
 
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-    const raw = sessionStorage.getItem('cima_session') ?? localStorage.getItem('cima_session');
-    if (!raw) return null;
-    try {
-      JSON.parse(raw);
-    } catch {
-      return null;
+const desktop = typeof window !== 'undefined' ? window.cimaDesktop : undefined;
+const API_URL = (desktop?.isDesktop ? desktop.apiUrl : import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '');
+
+export async function apiRequest(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  if (desktop?.isDesktop) headers.set('X-Cima-Desktop-Key', desktop.apiKey);
+  const token = readSession()?.token;
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
+  useUIStore.getState().startRequest();
+  try {
+    const response = await fetch(`${API_URL}${path}`, { ...init, headers });
+    if (response.status === 401 && !path.startsWith('/auth/login') && !path.startsWith('/auth/setup')) {
+      clearSession();
+      if (window.cimaDesktop?.isDesktop) window.location.hash = '/login';
+      else window.location.assign('/login');
+      throw new Error('Tu sesión terminó. Inicia sesión de nuevo.');
     }
-    return (sessionStorage.getItem('cima_token') ?? localStorage.getItem('cima_token')) ?? '';
-}
-
-export async function apiRequest(
-  path: string,
-  init: RequestInit = {}
-): Promise<Response> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(init.headers as Record<string, string> ?? {}),
-  };
-
-  const token = getToken();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    return response;
+  } catch (error) {
+    if (error instanceof TypeError) throw new Error(desktop?.isDesktop
+      ? 'No se pudo acceder a los datos de este equipo. Cierra Cima y vuelve a abrirla.'
+      : 'No se pudo conectar con el servidor. Comprueba que la API esté en ejecución.');
+    throw error;
+  } finally {
+    useUIStore.getState().finishRequest();
   }
-
-  const res = await fetch(`${API_URL}${path}`, { ...init, headers });
-
-  if (res.status === 401) {
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('cima_session');
-      localStorage.removeItem('cima_session');
-      sessionStorage.removeItem('cima_token');
-      localStorage.removeItem('cima_token');
-      window.location.href = '/login';
-    }
-    throw new Error('No autorizado');
-  }
-
-  return res;
 }
 
 export async function apiJson<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await apiRequest(path, init);
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `Error ${res.status}`);
+  const isRead = !init.method || init.method === 'GET';
+  try {
+    const response = await apiRequest(path, init);
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      const details = body?.details?.map((item: { message?: string }) => item.message).filter(Boolean).join('. ');
+      throw new Error(details || body?.error || `No se pudo completar la solicitud (${response.status}).`);
+    }
+    const data = response.status === 204 ? undefined : await response.json();
+    if (isRead) useUIStore.getState().setApiError(path, null);
+    return data as T;
+  } catch (error) {
+    if (isRead) useUIStore.getState().setApiError(path, error instanceof Error ? error.message : 'No se pudieron cargar los datos.');
+    throw error;
   }
-  if (res.status === 204) return undefined as unknown as T;
-  return res.json();
 }
 
 export { API_URL };

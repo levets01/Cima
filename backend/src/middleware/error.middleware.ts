@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { ZodError } from 'zod';
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -10,8 +11,13 @@ export const errorMiddleware = (
   res: Response,
   _next: NextFunction
 ): void => {
+  if (err instanceof ZodError) {
+    res.status(400).json({ error: 'Datos inválidos', details: err.errors.map((issue) => ({ field: issue.path.join('.'), message: issue.message })) });
+    return;
+  }
   const statusCode = err.statusCode ?? 500;
-  const message = err.message || 'Error interno del servidor';
+  const message = statusCode >= 500 && process.env.NODE_ENV === 'production'
+    ? 'Error interno del servidor' : err.message || 'Error interno del servidor';
 
   res.status(statusCode).json({
     error: message,

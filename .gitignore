@@ -11,6 +11,17 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+.desktop-app/
+.desktop-backend/
+release/
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
 
 # Editor directories and files
 .vscode/*

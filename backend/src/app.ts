@@ -3,10 +3,10 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import 'express-async-errors';
-import { setupSwagger } from '@/config/swagger';
-import { errorMiddleware } from '@/middleware/error.middleware';
+import { setupSwagger } from './config/swagger';
+import { errorMiddleware } from './middleware/error.middleware';
 import routes from './routes';
-import { config } from '@/config';
+import { config } from './config';
 
 export function createApp(): Application {
   const app = express();
@@ -20,11 +20,21 @@ export function createApp(): Application {
       origin: config.frontendUrl,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Cima-Desktop-Key'],
     })
   );
 
   app.use(helmet());
+
+  if (config.desktopMode) {
+    app.use((req, res, next) => {
+      if (!config.desktopKey || req.get('X-Cima-Desktop-Key') !== config.desktopKey) {
+        res.status(403).json({ error: 'Acceso exclusivo de la aplicación local' });
+        return;
+      }
+      next();
+    });
+  }
 
   // Documentación Swagger
   setupSwagger(app);

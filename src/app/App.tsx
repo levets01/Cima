@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Routes, Route } from 'react-router-dom';
 import { MainLayout } from '@/layouts/MainLayout';
 import { Dashboard } from '@/features/dashboard/Dashboard';
 import { ClientsList } from '@/features/clients';
@@ -10,8 +10,9 @@ import { LoginPage, RequireAuth, Logout } from '@/features/auth';
 import { SettingsPage } from '@/features/settings';
 
 export function App() {
+  const Router = window.cimaDesktop?.isDesktop ? HashRouter : BrowserRouter;
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
         <Route path="login" element={<LoginPage />} />
         <Route path="logout" element={<Logout />} />
@@ -29,6 +30,6 @@ export function App() {
         </Route>
         </Route>
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }

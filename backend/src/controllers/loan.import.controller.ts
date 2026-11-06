@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import { LoanService } from '@/services/loan.service';
-import { AuthRequest } from '@/middleware/auth.middleware';
+import { Response } from 'express';
+import { LoanService } from '../services/loan.service';
+import { AuthRequest } from '../middleware/auth.middleware';
 
 export class LoanImportController {
   static async import(req: AuthRequest, res: Response): Promise<void> {

@@ -1,64 +1,48 @@
 import { apiJson, apiRequest } from '@/lib/api';
+import { clearSession, readSession, saveSession } from '@/lib/session';
+import type { SessionUser } from '@/lib/session';
 
-export interface SessionUser {
-  email: string;
-  name: string;
-}
+export type { SessionUser } from '@/lib/session';
 
 export interface AuthResponse {
   user: SessionUser;
   token: string;
 }
 
-const SESSION_KEY = 'cima_session';
-const TOKEN_KEY = 'cima_token';
-
-function readSession(): SessionUser | null {
-  try {
-    const raw = sessionStorage.getItem(SESSION_KEY) ?? localStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as SessionUser) : null;
-  } catch {
-    return null;
-  }
-}
-
 export const auth = {
-  currentUser: readSession,
+  currentUser: () => readSession()?.user ?? null,
+  isAuthenticated: () => readSession() !== null,
 
-  isAuthenticated(): boolean {
-    return readSession() !== null;
+  async setup(name: string, email: string, password: string): Promise<SessionUser> {
+    const data = await apiJson<AuthResponse>('/auth/setup', {
+      method: 'POST',
+      body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), password }),
+    });
+    try {
+      saveSession(data.user, data.token, true);
+    } catch {
+      throw new Error('No se pudo guardar tu acceso en este equipo. Inténtalo de nuevo.');
+    }
+    return data.user;
   },
 
   async login(email: string, password: string, remember: boolean): Promise<SessionUser | null> {
-    const res = await apiRequest('/auth/login', {
+    const response = await apiRequest('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password, remember }),
+      body: JSON.stringify({ email: email.trim().toLowerCase(), password, remember }),
     });
-
-    if (res.status === 401) return null;
-    if (!res.ok) return null;
-
-    const data: AuthResponse = await res.json();
-
-    const session: SessionUser = { email: data.user.email, name: data.user.name };
+    if (response.status === 401) return null;
+    if (!response.ok) throw new Error('No se pudo iniciar sesión. Inténtalo de nuevo.');
+    const data: AuthResponse = await response.json();
     try {
-      const store = remember ? localStorage : sessionStorage;
-      store.setItem(SESSION_KEY, JSON.stringify(session));
-      store.setItem(TOKEN_KEY, data.token);
+      saveSession(data.user, data.token, remember);
     } catch {
-      /* almacenamiento bloqueado */
+      throw new Error('Habilita el almacenamiento del navegador para iniciar sesión.');
     }
-    return session;
+    return data.user;
   },
 
   logout() {
-    try {
-      sessionStorage.removeItem(SESSION_KEY);
-      localStorage.removeItem(SESSION_KEY);
-      sessionStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(TOKEN_KEY);
-    } catch {
-      /* noop */
-    }
+    clearSession();
   },
 };

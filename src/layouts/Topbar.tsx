@@ -14,7 +14,7 @@ export function Topbar() {
   useEffect(() => {
     apiJson<Payment[]>('/payments').then((payments) => {
       setToReview(payments.filter((p) => (p.review ?? '').startsWith('⚠')).length);
-    });
+    }).catch(() => {});
   }, []);
 
   return (

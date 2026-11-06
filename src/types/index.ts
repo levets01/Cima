@@ -113,7 +113,28 @@ export function formatDate(dateString: string | null): string {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
+    timeZone: 'UTC',
   });
+}
+
+/** Las fechas de préstamos y pagos son días del calendario, sin hora. */
+export function toDateInput(value: string | null): string {
+  return value?.slice(0, 10) ?? '';
+}
+
+export function dateInputToISO(value: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error('Fecha inválida. Usa AAAA-MM-DD.');
+  const iso = new Date(`${value}T00:00:00.000Z`).toISOString();
+  if (iso.slice(0, 10) !== value) throw new Error('La fecha no existe en el calendario.');
+  return iso;
+}
+
+export function todayDateInput(): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const part = (name: string) => parts.find((p) => p.type === name)?.value;
+  return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
 export function getRateForModality(modality: Modality, config: BusinessConfig): number {
@@ -153,12 +174,16 @@ export function computePeriodStatus(
 
 export function addMonths(date: Date, months: number): Date {
   const result = new Date(date);
-  result.setMonth(result.getMonth() + months);
+  const day = result.getUTCDate();
+  result.setUTCDate(1);
+  result.setUTCMonth(result.getUTCMonth() + months);
+  const lastDay = new Date(Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0)).getUTCDate();
+  result.setUTCDate(Math.min(day, lastDay));
   return result;
 }
 
 export function endOfMonth(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0));
 }
 
 export function computeNextDueDate(
@@ -177,9 +202,9 @@ export function computeNextDueDate(
   // Quincenal: lógica del Excel
   // Si día del primer vencimiento <= 15, siguiente es fin de mes; si no, día 15 del mes siguiente
   const prev = previousDueDate || firstDueDate;
-  if (prev.getDate() <= 15) {
+  if (prev.getUTCDate() <= 15) {
     return endOfMonth(prev);
   }
   const nextMonth = addMonths(prev, 1);
-  return new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 15);
+  return new Date(Date.UTC(nextMonth.getUTCFullYear(), nextMonth.getUTCMonth(), 15));
 }

@@ -1,19 +1,21 @@
 {
   "name": "control-prestamos-rosita-backend",
   "version": "1.0.0",
-  "description": "Backend para plataforma de gestión de préstamos",
+  "description": "Backend para plataforma de gesti\u00f3n de pr\u00e9stamos",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "start": "node dist/server.js",
+    "test": "node --import tsx --test src/services/loan-calculations.test.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:seed": "tsx prisma/seed.ts",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "test:integration": "node --import tsx --test tests/integration.test.ts tests/desktop-database.test.ts tests/desktop-api.test.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.0.0",
+    "@prisma/client": "6.19.3",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -35,7 +37,7 @@
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.6",
     "@types/node": "^22.10.0",
-    "prisma": "^6.0.0",
+    "prisma": "6.19.3",
     "tsx": "^4.19.0",
     "typescript": "~5.7.0"
   }

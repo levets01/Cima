@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { Alert } from '@/components/ui/alert';
+import { useState } from 'react';
 import { usePeriods, useLoans } from '@/hooks/useStorage';
 import { formatCurrency, formatDate, formatLoanNumber } from '@/types';
 import { Search } from 'lucide-react';
@@ -15,14 +16,10 @@ const STATUS_VARIANTS: Record<string, 'default' | 'destructive' | 'warning' | 's
 };
 
 export function PeriodsList() {
-  const { data: periods, refetch } = usePeriods();
+  const { data: periods, loading, error } = usePeriods();
   const { data: loansData } = useLoans();
   const [search, setSearch] = useState('');
   const [loanFilter, setLoanFilter] = useState('all');
-
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
 
   let filtered = periods;
 
@@ -47,16 +44,18 @@ export function PeriodsList() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1>Periodos de Pago</h1>
-          <p className="text-muted-foreground">Calendario de vencimientos por préstamo (máximo 36 períodos)</p>
+          <p className="text-muted-foreground">Calendario de vencimientos por préstamo</p>
         </div>
       </div>
 
+      {error && <Alert variant="error" title="No se pudieron cargar los datos" description={error} />}
+      {loading && <p role="status" className="text-sm text-muted-foreground">Cargando datos...</p>}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         {statItems.map((s) => (
           <Card key={s.label} className="">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground font-medium">{s.label}</p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums">{typeof s.value === 'number' ? formatCurrency(s.value) : s.value}</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{s.label === 'Rédito pendiente' ? formatCurrency(s.value) : s.value}</p>
             </CardContent>
           </Card>
         ))}

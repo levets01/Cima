@@ -144,25 +144,44 @@ export function computeLoanStatus(
   return 'Activo';
 }
 
+/** Business dates are compared in Colombia, independently of the server timezone. */
+export function businessDate(value: string | Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date(value));
+}
+
+export function roundMoney(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
 export function computePeriodStatus(
   capitalPendingEstimated: number,
   interestPending: number,
-  dueDate: string | null
+  dueDate: string | null,
+  now: Date = new Date()
 ): PeriodStatus {
   if (capitalPendingEstimated === 0) return 'Capital pagado';
   if (interestPending === 0) return 'Rédito pagado';
-  if (dueDate && new Date(dueDate) < new Date()) return 'Pendiente vencido';
+  if (dueDate && businessDate(dueDate) < businessDate(now)) return 'Pendiente vencido';
   return 'Por pagar';
 }
 
+/** Preserve the original day where possible and clamp to the target month's end. */
 export function addMonths(date: Date, months: number): Date {
   const result = new Date(date);
-  result.setMonth(result.getMonth() + months);
+  const day = result.getUTCDate();
+  result.setUTCDate(1);
+  result.setUTCMonth(result.getUTCMonth() + months);
+  const lastDay = new Date(Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0)).getUTCDate();
+  result.setUTCDate(Math.min(day, lastDay));
   return result;
 }
 
 export function endOfMonth(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  const result = new Date(date);
+  result.setUTCMonth(result.getUTCMonth() + 1, 0);
+  return result;
 }
 
 export function computeNextDueDate(
@@ -172,16 +191,13 @@ export function computeNextDueDate(
   firstDueDate: Date | null
 ): Date | null {
   if (!firstDueDate) return null;
-  if (periodNumber === 1) return firstDueDate;
+  if (periodNumber === 1) return new Date(firstDueDate);
+  if (modality === 'Mensual') return addMonths(firstDueDate, periodNumber - 1);
 
-  if (modality === 'Mensual') {
-    return addMonths(firstDueDate, periodNumber - 1);
-  }
-
-  const prev = previousDueDate || firstDueDate;
-  if (prev.getDate() <= 15) {
-    return endOfMonth(prev);
-  }
-  const nextMonth = addMonths(prev, 1);
-  return new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 15);
+  const previous = previousDueDate || firstDueDate;
+  if (previous.getUTCDate() <= 15) return endOfMonth(previous);
+  const next = new Date(previous);
+  next.setUTCDate(15);
+  next.setUTCMonth(next.getUTCMonth() + 1);
+  return next;
 }

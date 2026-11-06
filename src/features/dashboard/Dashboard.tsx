@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Banknote, HandCoins, BarChart3, BadgeCheck, ArrowRight } from 'lucide-react';
 import { useSummary, usePayments } from '@/hooks/useStorage';
@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/alert';
 import { MonthlyChart } from '@/components/charts/MonthlyChart';
 import { Sparkline } from '@/components/charts/Sparkline';
 import { StatusDonut } from '@/components/charts/StatusDonut';
@@ -16,13 +17,8 @@ const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const { data: summary, monthly, year, setYear, refetch } = useSummary();
-  const { data: payments, refetch: refetchPayments } = usePayments();
-
-  useEffect(() => {
-    refetch();
-    refetchPayments();
-  }, [refetch, refetchPayments]);
+  const { data: summary, monthly, year, setYear, loading, error } = useSummary();
+  const { data: payments, loading: paymentsLoading, error: paymentsError } = usePayments();
 
   const sparks = useMemo(() => {
     let lent = 0;
@@ -88,6 +84,8 @@ export function Dashboard() {
         </div>
       </div>
 
+      {(error || paymentsError) && <Alert variant="error" title="No se pudieron cargar los datos" description={error || paymentsError || ''} />}
+      {(loading || paymentsLoading) && <p role="status" className="text-sm text-muted-foreground">Cargando datos...</p>}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {kpis.map(({ label, value, icon: Icon, color, data }) => (
           <Card key={label} className="overflow-hidden">

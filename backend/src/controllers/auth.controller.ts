@@ -1,8 +1,16 @@
 import { Request, Response } from 'express';
-import { AuthService } from '@/services/auth.service';
-import { AuthRequest } from '@/middleware/auth.middleware';
+import { AuthService } from '../services/auth.service';
+import { AuthRequest } from '../middleware/auth.middleware';
 
 export class AuthController {
+  static async setupStatus(_req: Request, res: Response): Promise<void> {
+    res.json(await AuthService.setupStatus());
+  }
+
+  static async setup(req: Request, res: Response): Promise<void> {
+    res.status(201).json(await AuthService.setup(req.body));
+  }
+
   static async login(req: Request, res: Response): Promise<void> {
     const { email, password, remember } = req.body;
     const result = await AuthService.login({ email, password, remember });

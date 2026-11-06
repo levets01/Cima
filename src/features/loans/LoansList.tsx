@@ -1,3 +1,4 @@
+import { Alert } from '@/components/ui/alert';
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronRight, Plus, Search } from 'lucide-react';
@@ -28,10 +29,17 @@ const initials = (name: string) =>
 const Dash = () => <span className="text-muted-foreground/60">—</span>;
 
 export function LoansList() {
-  const { data: loans } = useLoans();
+  const { data: loans, loading, error } = useLoans();
   const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const [search, setSearch] = useState(params.get('q') ?? '');
+  const [params, setParams] = useSearchParams();
+  const search = params.get('q') ?? '';
+  const setSearch = (value: string) => {
+    setParams((previous) => {
+      if (value) previous.set('q', value);
+      else previous.delete('q');
+      return previous;
+    }, { replace: true });
+  };
   const [filter, setFilter] = useState<Filter>('Todos');
 
   const searched = useMemo(() => {
@@ -64,6 +72,8 @@ export function LoansList() {
         </Button>
       </div>
 
+      {error && <Alert variant="error" title="No se pudieron cargar los datos" description={error} />}
+      {loading && <p role="status" className="text-sm text-muted-foreground">Cargando datos...</p>}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6">
         {[
           { label: 'Préstamos', value: String(filtered.length) },

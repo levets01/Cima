@@ -1,13 +1,21 @@
-import { useState, type CSSProperties, type FormEvent } from 'react';
+import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { AlertCircle, Check, Eye, EyeOff } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { auth } from '@/services/auth';
+import { apiJson } from '@/lib/api';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const isDesktop = window.cimaDesktop?.isDesktop === true;
+  const [needsSetup, setNeedsSetup] = useState(false);
+  const [setupLoading, setSetupLoading] = useState(isDesktop);
+  const [setupError, setSetupError] = useState('');
+  const [setupAttempt, setSetupAttempt] = useState(0);
+  const [name, setName] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
@@ -17,6 +25,18 @@ export function LoginPage() {
   const [done, setDone] = useState(false);
   const [shake, setShake] = useState(false);
   const [capsOn, setCapsOn] = useState(false);
+
+  useEffect(() => {
+    if (!isDesktop) return;
+    let active = true;
+    apiJson<{ needsSetup: boolean }>('/auth/setup-status')
+      .then((status) => { if (active) setNeedsSetup(status.needsSetup); })
+      .catch((cause) => {
+        if (active) setSetupError(cause instanceof Error ? cause.message : 'No se pudo comprobar tu acceso local.');
+      })
+      .finally(() => { if (active) setSetupLoading(false); });
+    return () => { active = false; };
+  }, [isDesktop, setupAttempt]);
 
   if (auth.isAuthenticated() && !done) return <Navigate to="/" replace />;
 
@@ -28,20 +48,25 @@ export function LoginPage() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (busy || done) return;
+    if (busy || done || setupLoading || setupError) return;
     setError('');
     if (!EMAIL_RE.test(email.trim())) return fail('Escribe un correo válido, por ejemplo nombre@correo.com.');
     if (!password) return fail('Escribe tu contraseña.');
+    if (needsSetup && name.trim().length < 2) return fail('Escribe tu nombre, con al menos dos caracteres.');
+    if (needsSetup && password.length < 8) return fail('Elige una contraseña de al menos 8 caracteres.');
+    if (needsSetup && password !== confirmPassword) return fail('Las contraseñas no coinciden.');
     setBusy(true);
     try {
-      if (!(await auth.login(email, password, remember))) {
+      if (needsSetup) {
+        await auth.setup(name, email, password);
+      } else if (!(await auth.login(email, password, remember))) {
         return fail('El correo o la contraseña no son correctos.');
       }
       // Confirmación visible y salida suave antes de entrar
       setDone(true);
       setTimeout(() => navigate('/', { replace: true }), 650);
-    } catch {
-      fail('No se pudo iniciar sesión. Inténtalo de nuevo.');
+    } catch (cause) {
+      fail(cause instanceof Error ? cause.message : 'No se pudo iniciar sesión. Inténtalo de nuevo.');
     }
   };
 
@@ -50,7 +75,8 @@ export function LoginPage() {
   const label = 'mb-1.5 block text-sm font-semibold text-foreground';
   // Cada bloque entra en orden: --i define su turno
   const turn = (i: number) => ({ '--i': i }) as CSSProperties;
-  const invalid = !!error;
+  const displayedError = error || setupError;
+  const invalid = !!displayedError;
 
   return (
     <div className="relative grid min-h-screen bg-background text-foreground [--accent:345_60%_95%] [--primary:339_50%_44%] [--ring:339_50%_50%] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -288,14 +314,22 @@ export function LoginPage() {
           </div>
 
           <h1 className="login-in mt-8 font-display text-[44px] font-semibold leading-none tracking-tight text-primary" style={turn(1)}>
-            Bienvenida
+            {needsSetup ? 'Crea tu acceso local' : 'Bienvenida'}
           </h1>
           <p className="login-in mt-3 text-[15px] leading-relaxed text-muted-foreground" style={turn(2)}>
-            Ingresa con tu correo y tu contraseña.
+            {setupLoading ? 'Preparando el acceso en este equipo...' : needsSetup ? 'Configura tu nombre, correo y contraseña para comenzar. Tus datos se guardarán en este equipo.' : 'Ingresa con tu correo y tu contraseña.'}
           </p>
 
           <form onSubmit={submit} className="mt-8" noValidate>
-            <div className={shake ? 'login-shake' : ''} onAnimationEnd={() => setShake(false)}>
+            <fieldset disabled={busy || done || setupLoading || !!setupError} className={shake ? 'login-shake' : ''} onAnimationEnd={() => setShake(false)}>
+              {needsSetup && (
+                <div className="login-in mb-5" style={turn(3)}>
+                  <label htmlFor="setup-name" className={label}>Nombre</label>
+                  <input id="setup-name" type="text" value={name} onChange={(e) => setName(e.target.value)}
+                    autoComplete="name" autoFocus placeholder="Tu nombre" aria-invalid={invalid}
+                    aria-describedby={displayedError ? 'login-error' : undefined} className={input} />
+                </div>
+              )}
               <div className="login-in" style={turn(3)}>
                 <label htmlFor="email" className={label}>Correo electrónico</label>
                 <input
@@ -305,10 +339,10 @@ export function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="username"
-                  autoFocus
+                  autoFocus={!needsSetup}
                   placeholder="nombre@correo.com"
                   aria-invalid={invalid}
-                  aria-describedby={error ? 'login-error' : undefined}
+                  aria-describedby={displayedError ? 'login-error' : undefined}
                   className={input}
                 />
               </div>
@@ -323,9 +357,9 @@ export function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyUp={(e) => setCapsOn(e.getModifierState('CapsLock'))}
                     onBlur={() => setCapsOn(false)}
-                    autoComplete="current-password"
+                    autoComplete={needsSetup ? 'new-password' : 'current-password'}
                     aria-invalid={invalid}
-                    aria-describedby={error ? 'login-error' : undefined}
+                    aria-describedby={displayedError ? 'login-error' : undefined}
                     className={`${input} pr-24`}
                   />
                   <button
@@ -339,55 +373,68 @@ export function LoginPage() {
                   </button>
                 </div>
 
+                {needsSetup && <p className="mt-2 text-[13px] text-muted-foreground">Usa al menos 8 caracteres.</p>}
                 {capsOn && <p className="login-fade mt-2 text-[13px] text-warning">Tienes activadas las mayúsculas.</p>}
 
               </div>
 
-            </div>
+              {needsSetup && (
+                <div className="login-in mt-5" style={turn(5)}>
+                  <label htmlFor="setup-confirm-password" className={label}>Confirmar contraseña</label>
+                  <input id="setup-confirm-password" type={show ? 'text' : 'password'} value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password"
+                    aria-invalid={invalid} aria-describedby={displayedError ? 'login-error' : undefined} className={input} />
+                </div>
+              )}
+            </fieldset>
 
-            <label className="login-in mt-5 flex cursor-pointer items-center gap-2.5 text-sm text-muted-foreground" style={turn(6)}>
+            {!needsSetup && <label className="login-in mt-5 flex cursor-pointer items-center gap-2.5 text-sm text-muted-foreground" style={turn(6)}>
               <input
                 type="checkbox"
+                disabled={busy || done || setupLoading || !!setupError}
                 checked={remember}
                 onChange={(e) => setRemember(e.target.checked)}
                 className="h-4 w-4 rounded border-input text-primary focus:ring-primary/30"
               />
               Mantener la sesión en este equipo
-            </label>
+            </label>}
 
             <div id="login-error" role="alert" className="mt-4 min-h-[44px]">
-              {error && (
-                <p key={error} className="login-fade flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-[13.5px] leading-snug text-destructive">
+              {displayedError && (
+                <p key={displayedError} className="login-fade flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-[13.5px] leading-snug text-destructive">
                   <AlertCircle size={16} className="mt-px shrink-0" />
-                  {error}
+                  {displayedError}
                 </p>
               )}
+              {setupError && <button type="button" className="mt-2 text-sm font-semibold text-primary underline" onClick={() => {
+                setSetupError(''); setError(''); setSetupLoading(true); setSetupAttempt((attempt) => attempt + 1);
+              }}>Volver a intentar</button>}
             </div>
 
             <div className="login-in" style={turn(7)}>
               <button
                 type="submit"
-                disabled={busy || done}
+                disabled={busy || done || setupLoading || !!setupError}
                 className="relative flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground shadow-[0_8px_20px_-8px_hsl(var(--primary)/0.6)] transition duration-200 hover:-translate-y-px hover:bg-primary/90 hover:shadow-[0_12px_24px_-8px_hsl(var(--primary)/0.65)] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 disabled:cursor-default disabled:hover:translate-y-0"
               >
                 {done ? (
                   <>
                     <Check size={18} className="login-fade" /> Listo
                   </>
-                ) : busy ? (
+                ) : busy || setupLoading ? (
                   <>
                     <span className="login-spin h-4 w-4 rounded-full border-2 border-white/40 border-t-white" />
-                    Verificando
+                    {setupLoading ? 'Preparando...' : needsSetup ? 'Creando acceso...' : 'Verificando'}
                   </>
                 ) : (
-                  'Ingresar'
+                  needsSetup ? 'Crear mi acceso local' : 'Ingresar'
                 )}
               </button>
             </div>
           </form>
 
           <p className="login-in mt-10 border-t border-border pt-5 text-[13px] leading-relaxed text-muted-foreground" style={turn(8)}>
-            Acceso de demostración. El inicio de sesión real se conectará al servidor más adelante.
+            Acceso privado a tu registro de préstamos y pagos.
           </p>
         </div>
       </main>

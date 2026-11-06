@@ -1,16 +1,18 @@
 import { Router } from 'express';
-import { AuthController } from '@/controllers/auth.controller';
-import { LoanController } from '@/controllers/loan.controller';
-import { LoanImportController } from '@/controllers/loan.import.controller';
-import { PaymentController } from '@/controllers/payment.controller';
-import { PeriodController } from '@/controllers/period.controller';
-import { ConfigController } from '@/controllers/config.controller';
-import { ReportController } from '@/controllers/report.controller';
-import { authMiddleware, optionalAuthMiddleware } from '@/middleware/auth.middleware';
-import { validateMiddleware } from '@/middleware/validate.middleware';
-import { loginSchema, loanSchema, loanUpdateSchema, loanImportSchema, paymentSchema, configSchema } from '@/validators';
+import { AuthController } from '../controllers/auth.controller';
+import { LoanController } from '../controllers/loan.controller';
+import { LoanImportController } from '../controllers/loan.import.controller';
+import { PaymentController } from '../controllers/payment.controller';
+import { PeriodController } from '../controllers/period.controller';
+import { ConfigController } from '../controllers/config.controller';
+import { ReportController } from '../controllers/report.controller';
+import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware';
+import { validateMiddleware } from '../middleware/validate.middleware';
+import { loginSchema, loanSchema, loanUpdateSchema, loanImportSchema, paymentSchema, configSchema } from '../validators';
 
 const router = Router();
+router.get('/auth/setup-status', AuthController.setupStatus);
+router.post('/auth/setup', AuthController.setup);
 
 /**
  * @swagger

@@ -1,82 +1,85 @@
 import { z } from 'zod';
+import { businessDate } from '../types';
+
+const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => {
+  const parsed = new Date(`${value}T12:00:00.000Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}, 'Fecha inválida');
+
+/** Noon UTC preserves a date-only form value when displayed in Colombia. */
+export const dateSchema = z.union([dateOnly, z.string().datetime({ offset: true })])
+  .transform((value) => value.length === 10 ? `${value}T12:00:00.000Z` : new Date(value).toISOString());
+const money = z.number().finite().nonnegative().max(Number.MAX_SAFE_INTEGER / 100).multipleOf(0.01, 'Usa como máximo dos decimales');
+const rate = z.number().finite().min(0).max(1, 'La tasa debe estar entre 0 y 1');
 
 export const loginSchema = z.object({
-  email: z.string().email('Email inválido'),
+  email: z.string().trim().toLowerCase().email('Email inválido'),
   password: z.string().min(1, 'Contraseña requerida'),
+  remember: z.boolean().optional(),
 });
 
-export const loanSchema = z.object({
-  customerName: z.string().min(1, 'Nombre del cliente requerido'),
-  loanDate: z.string().datetime({ offset: true }),
-  principal: z.number().positive('El principal debe ser positivo'),
+const loanFields = z.object({
+  customerName: z.string().trim().min(1, 'Nombre del cliente requerido').max(200),
+  loanDate: dateSchema,
+  principal: money.positive('El principal debe ser positivo'),
   modality: z.enum(['Mensual', 'Quincenal']),
-  ratePerPeriod: z.number().nonnegative(),
-  interestPerPeriod: z.number().nonnegative(),
-  firstInterestPaymentDate: z.string().datetime({ offset: true }).optional().nullable(),
-  capitalPaid: z.number().nonnegative().default(0),
-  capitalPending: z.number().nonnegative().default(0),
-  interestReceived: z.number().nonnegative().default(0),
-  nextCollection: z.string().datetime({ offset: true }).optional().nullable(),
-  interestOverdue: z.number().nonnegative().default(0),
-  daysOverdue: z.number().int().nonnegative().default(0),
+  ratePerPeriod: rate.optional(),
+  // Accepted for compatibility; derived amounts are always calculated by the server.
+  interestPerPeriod: z.number().finite().nonnegative().optional(),
+  firstInterestPaymentDate: dateSchema.nullable().optional(),
+  capitalPaid: money.default(0),
+  interestReceived: money.default(0),
 });
 
-export const loanUpdateSchema = z.object({
-  customerName: z.string().min(1).optional(),
-  loanDate: z.string().datetime({ offset: true }).optional(),
-  principal: z.number().positive().optional(),
-  modality: z.enum(['Mensual', 'Quincenal']).optional(),
-  ratePerPeriod: z.number().nonnegative().optional(),
-  interestPerPeriod: z.number().nonnegative().optional(),
-  firstInterestPaymentDate: z.string().datetime({ offset: true }).optional().nullable(),
-  capitalPaid: z.number().nonnegative().optional(),
-  capitalPending: z.number().nonnegative().optional(),
-  interestReceived: z.number().nonnegative().optional(),
-  status: z.enum([
-    'Activo',
-    'En seguimiento',
-    'Falta fecha',
-    'Capital pagado',
-  ]).optional(),
-  nextCollection: z.string().datetime({ offset: true }).optional().nullable(),
-  interestOverdue: z.number().nonnegative().optional(),
-  daysOverdue: z.number().int().nonnegative().optional(),
+function validateLoanDates(value: { loanDate?: string; firstInterestPaymentDate?: string | null }, ctx: z.RefinementCtx) {
+  if (value.loanDate && value.firstInterestPaymentDate
+    && businessDate(value.firstInterestPaymentDate) < businessDate(value.loanDate)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['firstInterestPaymentDate'], message: 'El primer vencimiento no puede ser anterior al préstamo' });
+  }
+}
+
+export const loanSchema = loanFields.superRefine((value, ctx) => {
+  validateLoanDates(value, ctx);
+  if (value.capitalPaid > value.principal) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['capitalPaid'], message: 'El capital pagado no puede superar el principal' });
+  }
 });
+
+export const loanUpdateSchema = loanFields.omit({ capitalPaid: true, interestReceived: true })
+  .partial().superRefine(validateLoanDates);
 
 export const paymentSchema = z.object({
   loanId: z.number().int().positive('ID de préstamo inválido'),
-  paymentDate: z.string().datetime({ offset: true }),
-  amount: z.number().positive('El monto debe ser positivo'),
+  paymentDate: dateSchema,
+  amount: money.positive('El monto debe ser positivo'),
   type: z.enum(['Capital', 'Rédito']),
   periodNumber: z.number().int().positive().optional().nullable(),
-  note: z.string().optional(),
+  note: z.string().trim().max(2000).optional(),
+}).superRefine((value, ctx) => {
+  if (value.type === 'Rédito' && !value.periodNumber) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['periodNumber'], message: 'El rédito requiere un número de período' });
+  }
+  if (value.type === 'Capital' && value.periodNumber != null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['periodNumber'], message: 'Un abono a capital no lleva período' });
+  }
 });
 
 export const configSchema = z.object({
-  quincenalRate: z.number().nonnegative().optional(),
-  monthlyRate: z.number().nonnegative().optional(),
-  periodsPerLoan: z.number().int().positive().optional(),
-  maxLoans: z.number().int().positive().optional(),
-  maxPayments: z.number().int().positive().optional(),
+  quincenalRate: rate.optional(),
+  monthlyRate: rate.optional(),
+  periodsPerLoan: z.number().int().positive().max(1200).optional(),
+  maxLoans: z.number().int().positive().max(100000).optional(),
+  maxPayments: z.number().int().positive().max(1000000).optional(),
 });
 
 export const loanImportSchema = z.object({
-  loans: z.array(
-    z.object({
-      customerName: z.string().min(1, 'Nombre requerido'),
-      loanDate: z.string().min(1, 'Fecha requerida'),
-      principal: z.number().positive(),
-      modality: z.enum(['Mensual', 'Quincenal']),
-      ratePerPeriod: z.number().nonnegative().optional(),
-      interestPerPeriod: z.number().nonnegative().optional(),
-      firstInterestPaymentDate: z.string().min(1).optional().nullable(),
-      capitalPaid: z.number().nonnegative().default(0),
-      capitalPending: z.number().nonnegative().default(0),
-      interestReceived: z.number().nonnegative().default(0),
-      status: z.enum(['Activo', 'En seguimiento', 'Falta fecha', 'Capital pagado']).default('Activo'),
-      nextCollection: z.string().min(1).optional().nullable(),
-      interestOverdue: z.number().nonnegative().default(0),
-      daysOverdue: z.number().int().nonnegative().default(0),
-    })
-  ),
+  loans: z.array(loanFields.extend({
+    ratePerPeriod: z.number().finite().min(0).max(100)
+      .transform((value) => value > 1 ? value / 100 : value).optional(),
+  }).superRefine((value, ctx) => {
+    validateLoanDates(value, ctx);
+    if (value.capitalPaid > value.principal) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['capitalPaid'], message: 'El capital pagado no puede superar el principal' });
+    }
+  })).min(1, 'Se requiere al menos un préstamo').max(1000),
 });

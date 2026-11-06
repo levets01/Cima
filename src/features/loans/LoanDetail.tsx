@@ -23,7 +23,7 @@ const PERIOD_STATUS_VARIANTS: Record<string, 'default' | 'destructive' | 'succes
 export function LoanDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data: loans } = useLoans();
+  const { data: loans, loading, error } = useLoans();
   const { data: payments } = usePayments();
   const { data: periods } = usePeriods();
 
@@ -32,6 +32,8 @@ export function LoanDetail() {
   const loanPayments = payments?.filter((p) => p.loanId === loanId) || [];
   const loanPeriods = periods?.filter((p) => p.loanId === loanId) || [];
 
+  if (loading) return <p className="p-6" role="status">Cargando préstamo…</p>;
+  if (error) return <p className="p-6 text-destructive" role="alert">{error}</p>;
   if (!loan) {
     return (
       <div className="p-6 text-center">
@@ -49,6 +51,7 @@ export function LoanDetail() {
           <p className="text-muted-foreground">{loan.customerName}</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate(`/clientes?editar=${loan.id}`)}>Editar préstamo</Button>
           <Button onClick={() => navigate('/prestamos')}>Volver al registro</Button>
         </div>
       </div>
