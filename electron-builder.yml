@@ -26,6 +26,9 @@ extraResources:
       - '**/*'
       - '!.bin{,/**/*}'
       - '!**/.cache/**'
+# The NSIS block is intentionally omitted: this project builds the portable zip with
+# electron-builder and then compiles the final Windows installer with Inno Setup.
+# NSIS-specific config is only valid for electron-builder's own NSIS target.
 win:
   icon: desktop/resources/icon.ico
   target:
@@ -36,19 +39,3 @@ win:
   signExecutable: false
   artifactName: Cima-${version}-win-${arch}.${ext}
   requestedExecutionLevel: asInvoker
-nsis:
-  artifactName: Cima-${version}-Setup.${ext}
-  oneClick: false
-  perMachine: false
-  allowToChangeInstallationDirectory: true
-  createDesktopShortcut: true
-  createStartMenuShortcut: true
-  shortcutName: Cima
-  deleteAppDataOnUninstall: false
-  installerIcon: desktop/resources/icon.ico
-  uninstallerIcon: desktop/resources/icon.ico
-  installerHeaderIcon: desktop/resources/icon.ico
-  installerLanguages: [es_ES]
-  installMode: currentUser
-  runAfterFinish: true
-  language: 3082
