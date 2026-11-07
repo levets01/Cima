@@ -1,0 +1,51 @@
+name: Build Windows installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows-installer:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.18.0'
+          cache: 'npm'
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Prepare desktop bundle
+        run: npm run desktop:prepare
+
+      - name: Build portable bundle
+        run: npx electron-builder --win zip --x64 --publish never
+
+      - name: Compile Setup.exe with Inno Setup
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "installer\Cima.iss"'
+
+      - name: Upload Setup.exe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cima-Windows-Setup
+          path: release\*.exe
+          if-no-files-found: error

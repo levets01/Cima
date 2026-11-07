@@ -16,7 +16,7 @@ El instalador y el ZIP son dos formas de ejecutar la misma aplicación. El ZIP n
 
 ## Dónde se guardan los datos
 
-La carpeta de Cima se encuentra en `%APPDATA%\Cima`, normalmente `C:\Users\TU_USUARIO\AppData\Roaming\Cima`. El botón **Configuración → Abrir carpeta de datos** abre directamente su subcarpeta `data`.
+La carpeta de Cima se encuentra en `%LOCALAPPDATA%\Cima`, normalmente `C:\Users\TU_USUARIO\AppData\Local\Cima`. El botón **Configuración → Abrir carpeta de datos** abre directamente su subcarpeta `data`.
 
 | Archivo | Contenido |
 | --- | --- |
@@ -35,7 +35,7 @@ El botón **Crear copia de seguridad** guarda una copia consistente de la base e
 La restauración es manual en esta versión:
 
 1. Cierra Cima por completo. No reemplaces la base mientras la aplicación esté abierta.
-2. Conserva una copia del archivo actual `%APPDATA%\Cima\data\cima.db` para poder volver atrás.
+2. Conserva una copia del archivo actual `%LOCALAPPDATA%\Cima\data\cima.db` para poder volver atrás.
 3. Copia el respaldo en esa carpeta con el nombre `cima.db`, reemplazando el archivo actual.
 4. Abre Cima y comprueba clientes, saldos y últimos pagos. Inicia sesión con un usuario que exista en la copia restaurada.
 
@@ -134,18 +134,22 @@ Verificación realizada en Linux: 14 pruebas unitarias del backend y 31 resultad
 
 ## Generar los archivos para Windows
 
-```sh
+En Windows, ejecuta cualquiera de estas opciones:
+
+```powershell
 npm run dist:win
+# o
+npm run dist:win:setup
+# o
+npm run windows:installer
 ```
 
 El script compila ambas aplicaciones, prepara los recursos y genera los paquetes Windows x64 en `release/`:
 
-- `Cima-1.0.0-Setup.exe`: nombre previsto del instalador NSIS; regeneración pendiente de validación.
-- `Cima-1.0.0-win-x64.zip`: nombre previsto de la carpeta completa sin instalador; regeneración pendiente de validación.
+- `Cima-1.0.0-Setup.exe`: instalador NSIS con acceso directo del menú Inicio y escritorio.
+- `Cima-1.0.0-win-x64.zip`: paquete portable del mismo programa sin instalador.
 - `Cima-1.0.0-Setup.exe.blockmap`: metadatos del empaquetador; no se necesitan para instalar manualmente.
 
-Los números de versión cambian con la versión del paquete. `npm run desktop:prepare` prepara los recursos sin producir por sí solo el instalador. `npm run dist:win:zip` genera únicamente el ZIP. La configuración incluye el icono de Cima y omite la firma digital. El paso `afterPack` comprueba que el paquete contenga ASAR, backend, migración, cliente Prisma, motor Windows y dependencias locales antes de generar los artefactos. La prueba del paquete Linux ya pasó; no distribuyas los archivos Windows anteriores a la corrección de dependencias mientras se generan los nuevos.
+Los números de versión cambian con la versión del paquete. `npm run desktop:prepare` prepara los recursos sin producir por sí solo el instalador. `npm run dist:win:zip` genera únicamente el ZIP. La configuración incluye el logo y el icono de Cima y omite la firma digital. El paso `afterPack` comprueba que el paquete contenga ASAR, backend, migración, cliente Prisma, motor Windows y dependencias locales antes de generar los artefactos.
 
-Puedes compilar en Windows. Para compilar el instalador NSIS desde Linux, el flujo actual necesita Wine; la [guía oficial de electron-builder](https://www.electron.build/v26/docs/features/multi-platform-build/) explica los requisitos de compilación cruzada. Las descargas de Electron, Prisma y herramientas de empaquetado requieren conexión durante la preparación. Los motores Windows se incluyen en los recursos para que la aplicación instalada pueda iniciar sin descargarlos.
-
-La generación de un `.exe` no sustituye comprobar instalación, primer acceso, pagos, copia y restauración en Windows real. Consulta la auditoría y pendientes en [docs/ESTADO_PROYECTO.md](docs/ESTADO_PROYECTO.md).
+En GitHub Actions, el flujo `.github/workflows/windows-installer.yml` compila el instalador en un runner Windows y sube `Cima-*.exe` como artefacto. Esto evita depender de un entorno local con Wine ni de herramientas de desarrollo. La generación del `.exe` no sustituye la validación de instalación y primer uso en Windows real; consulta también [docs/ESTADO_PROYECTO.md](docs/ESTADO_PROYECTO.md).

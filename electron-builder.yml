@@ -35,6 +35,7 @@ win:
       arch: [x64]
   signExecutable: false
   artifactName: Cima-${version}-win-${arch}.${ext}
+  requestedExecutionLevel: asInvoker
 nsis:
   artifactName: Cima-${version}-Setup.${ext}
   oneClick: false
@@ -44,4 +45,10 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: Cima
   deleteAppDataOnUninstall: false
+  installerIcon: desktop/resources/icon.ico
+  uninstallerIcon: desktop/resources/icon.ico
+  installerHeaderIcon: desktop/resources/icon.ico
   installerLanguages: [es_ES]
+  installMode: currentUser
+  runAfterFinish: true
+  language: 3082

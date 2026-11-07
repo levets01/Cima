@@ -13,8 +13,10 @@
     "check": "npm run test && npm run lint && npm run build",
     "desktop": "npm run build && npm run build --prefix backend && node desktop/run.mjs",
     "desktop:prepare": "npm run build && npm run build --prefix backend && node desktop/prepare.mjs",
-    "dist:win": "npm run desktop:prepare && electron-builder --win nsis zip --x64",
-    "dist:win:zip": "npm run desktop:prepare && electron-builder --win zip --x64",
+    "dist:win": "npm run desktop:prepare && electron-builder --win nsis zip --x64 --publish never",
+    "dist:win:setup": "npm run desktop:prepare && electron-builder --win nsis --x64 --publish never",
+    "dist:win:zip": "npm run desktop:prepare && electron-builder --win zip --x64 --publish never",
+    "windows:installer": "powershell -ExecutionPolicy Bypass -File scripts/build-windows-installer.ps1",
     "test:desktop": "npm run desktop:prepare && node desktop/smoke.mjs",
     "desktop:install": "node node_modules/electron/install.js"
   },

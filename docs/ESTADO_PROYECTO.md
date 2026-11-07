@@ -26,14 +26,14 @@ Una carpeta de datos representa una única cartera compartida por los usuarios d
 | Configuración | Guardar límites podía enviar tasas sin cambios | Solo se envían campos modificados, conservando tasas propias cuando corresponde |
 | Ejecución | Dependencia de PostgreSQL externo y backend compilado no resolvía imports | SQLite embebido, motores Windows incluidos e imports resolubles |
 | Primera instalación | Dependencia de una cuenta de ejemplo | Creación del acceso personal desde la aplicación |
-| Persistencia | Datos debían sobrevivir a reinstalaciones y actualizaciones | Base fuera de la instalación: `%APPDATA%\Cima\data\cima.db` |
+| Persistencia | Datos debían sobrevivir a reinstalaciones y actualizaciones | Base fuera de la instalación: `%LOCALAPPDATA%\Cima\data\cima.db` |
 | Copias | Necesidad de recuperar una cartera local | Copia consistente desde Configuración y acceso a la carpeta de datos |
 | Distribución | Necesidad de abrir en Windows sin entorno de desarrollo | Preparación de instalador NSIS y ZIP Windows x64 |
 | Documentación | Guías de plantilla o de una fase web anterior | Instrucciones de uso local, desarrollo, empaquetado y restauración manual |
 
 ## Datos y respaldo
 
-La carpeta estable es `%APPDATA%\Cima`, con la base en `data/cima.db`, la clave de sesiones en `data/runtime.json` y el registro del servicio en `logs/backend.log`. El instalador conserva los datos por defecto; el ZIP utiliza también esa carpeta de usuario.
+La carpeta estable es `%LOCALAPPDATA%\Cima`, con la base en `data/cima.db`, la clave de sesiones en `data/runtime.json` y el registro del servicio en `logs/backend.log`. El instalador conserva los datos por defecto; el ZIP utiliza también esa carpeta de usuario.
 
 La interfaz permite crear una copia `.db`. La restauración todavía es manual: cerrar Cima, conservar la base actual, sustituir `data/cima.db` por una copia y abrir para comprobar saldos y últimos pagos. La copia contiene los usuarios de esa cartera. No se debe reemplazar el archivo mientras la aplicación esté abierta.
 

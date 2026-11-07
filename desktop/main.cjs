@@ -8,7 +8,7 @@ const { pathToFileURL } = require('node:url');
 // Keep data in the same location through installations and upgrades.
 app.setName('Cima');
 if (process.env.CIMA_TEST_DATA_DIR) app.setPath('userData', process.env.CIMA_TEST_DATA_DIR);
-else app.setPath('userData', path.join(app.getPath('appData'), 'Cima'));
+else app.setPath('userData', path.join(app.getPath('localAppData'), 'Cima'));
 app.setAppUserModelId('co.cima.prestamos');
 
 let mainWindow;
