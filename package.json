@@ -2,7 +2,7 @@
   "name": "control-prestamos-rosita",
   "private": true,
   "version": "1.0.0",
-  "description": "Sistema de gesti\u00f3n de pr\u00e9stamos basado en Control_Prestamos_Rosita_Registro_y_Rentabilidad.xlsx",
+  "description": "Sistema de gestión de préstamos basado en Control_Prestamos_Rosita_Registro_y_Rentabilidad.xlsx",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -27,7 +27,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "echarts": "^6.1.0",
-    "lucide-react": "^1.68.0",
+    "lucide-react": "^1.70.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-hook-form": "^7.91.0",

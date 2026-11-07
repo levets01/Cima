@@ -7,9 +7,37 @@ const { pathToFileURL } = require('node:url');
 
 // Keep data in the same location through installations and upgrades.
 app.setName('Cima');
-if (process.env.CIMA_TEST_DATA_DIR) app.setPath('userData', process.env.CIMA_TEST_DATA_DIR);
-else app.setPath('userData', path.join(app.getPath('localAppData'), 'Cima'));
+
+function resolveUserDataDirectory() {
+  if (process.env.CIMA_TEST_DATA_DIR) {
+    const testDirectory = path.resolve(process.env.CIMA_TEST_DATA_DIR);
+    fs.mkdirSync(testDirectory, { recursive: true });
+    return testDirectory;
+  }
+
+  const defaultUserData = app.getPath('userData');
+  if (defaultUserData && defaultUserData.trim()) {
+    fs.mkdirSync(defaultUserData, { recursive: true });
+    return defaultUserData;
+  }
+
+  const localAppData = process.env.LOCALAPPDATA?.trim();
+  if (localAppData && fs.existsSync(localAppData)) {
+    const localDirectory = path.join(localAppData, 'Cima');
+    fs.mkdirSync(localDirectory, { recursive: true });
+    return localDirectory;
+  }
+
+  const homePath = path.join(process.env.HOMEDRIVE || '', process.env.HOMEPATH || '', 'AppData', 'Local', 'Cima');
+  fs.mkdirSync(homePath, { recursive: true });
+  return homePath;
+}
+
+app.setPath('userData', resolveUserDataDirectory());
 app.setAppUserModelId('co.cima.prestamos');
+
+const userDataDirectory = app.getPath('userData');
+fs.mkdirSync(userDataDirectory, { recursive: true });
 
 let mainWindow;
 let backend;
@@ -17,12 +45,17 @@ let runtime;
 let quitting = false;
 let requestId = 0;
 const requests = new Map();
-const dataDirectory = path.join(app.getPath('userData'), 'data');
-const logDirectory = path.join(app.getPath('userData'), 'logs');
+const dataDirectory = path.join(userDataDirectory, 'data');
+const logDirectory = path.join(userDataDirectory, 'logs');
 const backendDirectory = app.isPackaged ? path.join(process.resourcesPath, 'backend') : path.join(__dirname, '..', 'backend');
 
+function ensurePathExists(targetPath) {
+  fs.mkdirSync(targetPath, { recursive: true });
+  return targetPath;
+}
+
 function getJwtSecret() {
-  fs.mkdirSync(dataDirectory, { recursive: true });
+  ensurePathExists(dataDirectory);
   const file = path.join(dataDirectory, 'runtime.json');
   if (fs.existsSync(file)) {
     const config = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -37,7 +70,7 @@ function getJwtSecret() {
 function startBackend() {
   return new Promise((resolve, reject) => {
     const jwtSecret = getJwtSecret();
-    fs.mkdirSync(logDirectory, { recursive: true });
+    ensurePathExists(logDirectory);
     const log = fs.createWriteStream(path.join(logDirectory, 'backend.log'), { flags: 'a' });
     log.on('error', (error) => { console.error('No se pudo escribir el registro local:', error.message); if (!runtime) reject(error); });
     const apiKey = crypto.randomBytes(32).toString('hex');
@@ -86,6 +119,7 @@ async function backupDatabase() {
   });
   if (result.canceled || !result.filePath) return null;
   const destination = path.resolve(result.filePath);
+  ensurePathExists(path.dirname(destination));
   // VACUUM INTO requires a fresh file. Refuse overwrite so existing copies stay intact.
   if (fs.existsSync(destination)) throw new Error('Elige un nombre nuevo para conservar la copia anterior.');
   return requestBackup(destination);
@@ -128,13 +162,15 @@ function createWindow() {
         const smokeRenderer = require('./smoke-renderer.cjs');
         const result = await mainWindow.webContents.executeJavaScript(`(${smokeRenderer.toString()})()`);
         if (result.phase === 'initial') {
-          const destination = path.join(app.getPath('userData'), 'smoke-backup.db');
+          const destination = path.join(userDataDirectory, 'smoke-backup.db');
+          ensurePathExists(path.dirname(destination));
           await requestBackup(destination);
           if (!fs.statSync(destination).size) throw new Error('La copia local quedó vacía');
           result.backup = true;
         }
         const capture = await mainWindow.webContents.capturePage();
-        fs.writeFileSync(path.join(app.getPath('userData'), `smoke-${result.phase}.png`), capture.toPNG());
+        ensurePathExists(userDataDirectory);
+        fs.writeFileSync(path.join(userDataDirectory, `smoke-${result.phase}.png`), capture.toPNG());
         session.defaultSession.flushStorageData();
         console.log('CIMA_SMOKE_OK '+JSON.stringify(result));app.quit();
       } catch(error) { console.error('CIMA_SMOKE_FAIL',error);app.exit(1); }
